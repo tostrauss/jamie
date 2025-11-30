@@ -1,6 +1,15 @@
 /* You can add global styles to this file, and also import other style files */
 @import "tailwindcss";
 
+@theme {
+  /* Hier definieren wir deine Variablen für Tailwind */
+  --color-jamie-dark: #1c1c2e;
+  --color-jamie-card: #2e2e42;
+  --color-jamie-orange: #ff7043;
+  
+  /* Schriftart */
+  --font-sans: "Inter", sans-serif;
+}
 /* Global Styles */
 body {
   margin: 0;

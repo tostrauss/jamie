@@ -1,0 +1,67 @@
+// backend/prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String    @id @default(uuid())
+  email       String    @unique
+  username    String
+  password    String    // Hashed!
+  avatarUrl   String?
+  bio         String?
+  createdAt   DateTime  @default(now())
+  
+  // Relations
+  createdGroups ActivityGroup[] @relation("GroupCreator")
+  joinedGroups  Participant[]
+  messages      Message[]
+}
+
+model ActivityGroup {
+  id             String        @id @default(uuid())
+  title          String
+  description    String
+  category       String        // Sport, Party, Kultur...
+  location       String
+  date           DateTime
+  maxMembers     Int
+  imageUrl       String?
+  createdAt      DateTime      @default(now())
+  
+  creatorId      String
+  creator        User          @relation("GroupCreator", fields: [creatorId], references: [id])
+  
+  participants   Participant[]
+  messages       Message[]
+}
+
+model Participant {
+  id        String        @id @default(uuid())
+  userId    String
+  groupId   String
+  joinedAt  DateTime      @default(now())
+  
+  user      User          @relation(fields: [userId], references: [id])
+  group     ActivityGroup @relation(fields: [groupId], references: [id])
+
+  @@unique([userId, groupId]) // Ein User kann nur einmal beitreten
+}
+
+model Message {
+  id        String        @id @default(uuid())
+  content   String
+  createdAt DateTime      @default(now())
+  
+  senderId  String
+  groupId   String
+  
+  sender    User          @relation(fields: [senderId], references: [id])
+  group     ActivityGroup @relation(fields: [groupId], references: [id])
+}

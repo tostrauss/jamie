@@ -1,7 +1,7 @@
 import { Component, EventEmitter, Output, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { BackendService } from '../../services/backend.service';
+import { BackendService } from '../../../../services/backend.service';
 
 @Component({
   selector: 'app-create-modal',

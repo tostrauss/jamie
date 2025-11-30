@@ -1,6 +1,6 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivityGroup } from '../../models/types';
+import { ActivityGroup } from '../../../../models/types';
 
 @Component({
   selector: 'app-join-modal',

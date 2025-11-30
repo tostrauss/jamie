@@ -1,0 +1,29 @@
+:root {
+  /* Primary */
+  --jamie-dark: #1c1c2e;
+  --jamie-card: #2e2e42;
+  --jamie-card-hover: #34344b;
+  
+  /* Accent */
+  --jamie-orange: #ff7043;
+  --jamie-orange-light: #ff8a65;
+  --jamie-orange-glow: rgba(255, 112, 67, 0.4);
+  
+  /* Text */
+  --jamie-white: #ffffff;
+  --jamie-gray-100: #f5f5f5;
+  --jamie-gray-400: #9ca3af;
+  --jamie-gray-500: #6b7280;
+  
+  /* Status */
+  --jamie-success: #10b981;
+  --jamie-error: #ef4444;
+  --jamie-warning: #f59e0b;
+  /* Headings */
+    font-family: 'Inter', sans-serif;
+    font-weight: 700;
+
+/* Body */
+    font-family: 'Inter', sans-serif;
+    font-weight: 400;
+}

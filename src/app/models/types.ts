@@ -37,4 +37,9 @@ interface Category {
   name: string;
   iconUrl: string;
 }
+export interface Toast {
+  id: string;
+  message: string;
+  type: 'success' | 'error' | 'info';
+}
 export type { ActivityGroup, UserProfile, Notification, Message, Category };

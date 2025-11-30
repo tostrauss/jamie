@@ -1,4 +1,5 @@
 // backend/prisma/schema.prisma
+// Jamie App - Social Activity Platform
 
 generator client {
   provider = "prisma-client-js"
@@ -9,59 +10,146 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ============================================
+// USER MODEL
+// ============================================
 model User {
   id          String    @id @default(uuid())
   email       String    @unique
-  username    String
-  password    String    // Hashed!
+  username    String    @unique
+  password    String    // Hashed with bcrypt
   avatarUrl   String?
   bio         String?
+  city        String?   // Wien, Berlin, etc.
+  isVerified  Boolean   @default(false)
   createdAt   DateTime  @default(now())
-  
+  updatedAt   DateTime  @updatedAt
+
   // Relations
-  createdGroups ActivityGroup[] @relation("GroupCreator")
-  joinedGroups  Participant[]
-  messages      Message[]
+  createdGroups   ActivityGroup[] @relation("GroupCreator")
+  participations  Participant[]
+  messages        Message[]
+  notifications   Notification[]  @relation("NotificationRecipient")
+
+  @@index([city])
+  @@index([email])
 }
 
+// ============================================
+// ACTIVITY GROUP MODEL
+// ============================================
 model ActivityGroup {
   id             String        @id @default(uuid())
   title          String
   description    String
-  category       String        // Sport, Party, Kultur...
+  category       ActivityCategory
   location       String
+  city           String        // For filtering by city
   date           DateTime
-  maxMembers     Int
+  maxMembers     Int           @default(10)
   imageUrl       String?
+  avatarSeeds    Int[]         @default([])  // For displaying random avatars
+  isActive       Boolean       @default(true)
   createdAt      DateTime      @default(now())
-  
+  updatedAt      DateTime      @updatedAt
+
+  // Relations
   creatorId      String
-  creator        User          @relation("GroupCreator", fields: [creatorId], references: [id])
-  
+  creator        User          @relation("GroupCreator", fields: [creatorId], references: [id], onDelete: Cascade)
   participants   Participant[]
   messages       Message[]
+
+  @@index([city])
+  @@index([category])
+  @@index([date])
+  @@index([creatorId])
 }
 
+// ============================================
+// PARTICIPANT MODEL (Join Table)
+// ============================================
 model Participant {
-  id        String        @id @default(uuid())
+  id        String            @id @default(uuid())
+  status    ParticipantStatus @default(PENDING)
+  message   String?           // Optional message when joining
+  joinedAt  DateTime          @default(now())
+
   userId    String
   groupId   String
-  joinedAt  DateTime      @default(now())
-  
-  user      User          @relation(fields: [userId], references: [id])
-  group     ActivityGroup @relation(fields: [groupId], references: [id])
 
-  @@unique([userId, groupId]) // Ein User kann nur einmal beitreten
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  group     ActivityGroup     @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, groupId])
+  @@index([userId])
+  @@index([groupId])
 }
 
+// ============================================
+// MESSAGE MODEL (Group Chat)
+// ============================================
 model Message {
   id        String        @id @default(uuid())
   content   String
   createdAt DateTime      @default(now())
-  
+
   senderId  String
   groupId   String
-  
-  sender    User          @relation(fields: [senderId], references: [id])
-  group     ActivityGroup @relation(fields: [groupId], references: [id])
+
+  sender    User          @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  group     ActivityGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@index([groupId])
+  @@index([senderId])
+}
+
+// ============================================
+// NOTIFICATION MODEL
+// ============================================
+model Notification {
+  id        String           @id @default(uuid())
+  type      NotificationType
+  title     String
+  content   String
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  userId    String
+  user      User             @relation("NotificationRecipient", fields: [userId], references: [id], onDelete: Cascade)
+
+  // Optional reference to related entities
+  groupId   String?
+
+  @@index([userId])
+  @@index([isRead])
+}
+
+// ============================================
+// ENUMS
+// ============================================
+enum ActivityCategory {
+  SPORT
+  PARTY
+  KULTUR
+  NATUR
+  SOCIAL
+  FOOD
+  TRAVEL
+  GAMING
+  OTHER
+}
+
+enum ParticipantStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum NotificationType {
+  JOIN_REQUEST
+  REQUEST_APPROVED
+  REQUEST_REJECTED
+  NEW_MESSAGE
+  EVENT_REMINDER
+  GROUP_UPDATE
 }

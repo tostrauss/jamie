@@ -1,26 +1,111 @@
-/* You can add global styles to this file, and also import other style files */
+/* src/styles.css */
+/* Jamie App - Global Styles */
+
 @import "tailwindcss";
 
+/* ============================================
+   TAILWIND THEME CUSTOMIZATION
+   ============================================ */
 @theme {
-  /* Hier definieren wir deine Variablen für Tailwind */
   --color-jamie-dark: #1c1c2e;
+  --color-jamie-darker: #151523;
   --color-jamie-card: #2e2e42;
-  --color-jamie-orange: #ff7043;
+  --color-jamie-card-hover: #34344b;
+  --color-jamie-border: rgba(255, 255, 255, 0.05);
   
-  /* Schriftart */
-  --font-sans: "Inter", sans-serif;
-}
-/* Global Styles */
-body {
-  margin: 0;
-  font-family: 'Inter', sans-serif;
-  background-color: #1c1c2e; /* Fallback color */
+  --color-jamie-orange: #ff7043;
+  --color-jamie-orange-light: #ff8a65;
+  --color-jamie-orange-dark: #f4511e;
+  --color-jamie-orange-glow: rgba(255, 112, 67, 0.4);
+  
+  --color-jamie-white: #ffffff;
+  --color-jamie-gray-100: #f5f5f5;
+  --color-jamie-gray-300: #d1d5db;
+  --color-jamie-gray-400: #9ca3af;
+  --color-jamie-gray-500: #6b7280;
+  --color-jamie-gray-600: #4b5563;
+  
+  --color-jamie-success: #10b981;
+  --color-jamie-error: #ef4444;
+  --color-jamie-warning: #f59e0b;
+  --color-jamie-info: #3b82f6;
+  
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --spacing-safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
-/* Custom Animations für das Modal */
+/* ============================================
+   BASE STYLES
+   ============================================ */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-sans);
+  background-color: #1c1c2e;
+  color: #ffffff;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+::selection {
+  background-color: rgba(255, 112, 67, 0.3);
+  color: #ffffff;
+}
+
+:focus-visible {
+  outline: 2px solid #ff7043;
+  outline-offset: 2px;
+}
+
+/* ============================================
+   SCROLLBAR
+   ============================================ */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1c1c2e;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #3e3e52;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #4e4e62;
+}
+
+/* ============================================
+   ANIMATIONS
+   ============================================ */
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.2s ease-out forwards;
 }
 
 @keyframes zoomIn {
@@ -34,19 +119,229 @@ body {
   }
 }
 
-.animate-fade-in {
-  animation: fadeIn 0.2s ease-out forwards;
-}
-
 .animate-zoom-in {
   animation: zoomIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* Utility to hide scrollbar but keep functionality */
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+
+.animate-slide-up {
+  animation: slideUp 0.35s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-down {
+  animation: slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes slideIn {
+  from { 
+    transform: translateX(100%); 
+    opacity: 0; 
+  }
+  to { 
+    transform: translateX(0); 
+    opacity: 1; 
+  }
+}
+
+.animate-slide-in {
+  animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* ============================================
+   UTILITY CLASSES
+   ============================================ */
+.glass {
+  background: rgba(46, 46, 66, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.gradient-text {
+  background: linear-gradient(135deg, #ff8a65 0%, #ff7043 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.glow-orange {
+  box-shadow: 0 0 20px rgba(255, 112, 67, 0.3);
+}
+
+.card-hover {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+}
+
+.card-hover:active {
+  transform: scale(0.98);
+}
+
+.safe-bottom {
+  padding-bottom: max(24px, env(safe-area-inset-bottom));
+}
+
+.line-clamp-1 {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ============================================
+   COMPONENT STYLES
+   ============================================ */
+.input-jamie {
+  width: 100%;
+  background-color: #1c1c2e;
+  color: #ffffff;
+  border-radius: 0.75rem;
+  padding: 0.875rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: border-color 0.2s, background-color 0.2s;
+}
+
+.input-jamie:focus {
+  outline: none;
+  border-color: #ff7043;
+  background-color: #252538;
+}
+
+.input-jamie::placeholder {
+  color: #6b7280;
+}
+
+.btn-jamie {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.875rem 1.5rem;
+  font-weight: 600;
+  border-radius: 1rem;
+  transition: all 0.2s;
+  cursor: pointer;
+  border: none;
+}
+
+.btn-jamie:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #ff8a65 0%, #ff7043 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(255, 112, 67, 0.3);
+}
+
+.btn-primary:hover:not(:disabled) {
+  box-shadow: 0 6px 20px rgba(255, 112, 67, 0.4);
+  transform: translateY(-1px);
+}
+
+.btn-primary:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.btn-secondary {
+  background-color: rgba(255, 255, 255, 0.05);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* ============================================
+   SKELETON LOADING
+   ============================================ */
+.skeleton {
+  background: linear-gradient(90deg, #2e2e42 0%, #3e3e52 50%, #2e2e42 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: 0.5rem;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* Prevent body scroll when modal is open */
+body.modal-open {
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
 }

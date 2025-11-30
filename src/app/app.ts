@@ -1,19 +1,24 @@
 import { Component, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { RouterOutlet } from '@angular/router';
+import { JoinModalComponent } from './components/join-modal/join-modal.component';
+import { ActivityGroup, Category } from './models/types';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet],
+  standalone: true,
+  // WICHTIG: Hier importieren wir CommonModule (für *ngIf/*ngFor) und das Modal
+  imports: [CommonModule, RouterOutlet, JoinModalComponent],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
 export class App {
-  protected readonly title = signal('jamie-app');
+  title = signal('jamie-app');
+  
   // STATE
   selectedGroup: ActivityGroup | null = null;
-  joining = false;
 
-  // DATA (Hardcoded for stability)
+  // DATA
   categories: Category[] = [
     { id: '1', name: 'Sport', iconUrl: 'https://images.unsplash.com/photo-1517649763962-0c623066013b?auto=format&fit=crop&q=80&w=200' },
     { id: '2', name: 'Party', iconUrl: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&q=80&w=200' },
@@ -24,8 +29,8 @@ export class App {
   groups: ActivityGroup[] = [
     {
       id: '1',
-      title: 'Bar-hopping',
-      description: 'Wir ziehen durch die Bars im Bermudadreieck. Start im Krah Krah.',
+      title: 'Bar-hopping Bermudadreieck',
+      description: 'Wir ziehen durch die Bars. Start im Krah Krah, dann schauen wir weiter! Wer ist dabei?',
       category: 'Party',
       location: 'Wien, Bermudadreieck',
       date: 'Fr, 20:00',
@@ -37,7 +42,7 @@ export class App {
     {
       id: '2',
       title: 'Sunset Volleyball',
-      description: 'Locker spielen, Musik hören und den Sonnenuntergang genießen.',
+      description: 'Locker spielen, Musik hören und den Sonnenuntergang genießen. Niveau: Hobby.',
       category: 'Sport',
       location: 'Donauinsel',
       date: 'Sa, 17:00',
@@ -48,8 +53,8 @@ export class App {
     },
     {
       id: '3',
-      title: 'Museums Quartier',
-      description: 'Neue Ausstellung ansehen und danach auf einen Spritzer.',
+      title: 'Museums Quartier chillen',
+      description: 'Neue Ausstellung ansehen und danach auf einen Spritzer in den Hof.',
       category: 'Kultur',
       location: 'MQ Wien',
       date: 'So, 14:00',
@@ -60,8 +65,8 @@ export class App {
     },
      {
       id: '4',
-      title: 'Laufrunde Prater',
-      description: 'Entspannte 5-7km durch die Hauptallee. Pace ca 6:00.',
+      title: 'Laufrunde Prater Hauptallee',
+      description: 'Entspannte 5-7km durch die Hauptallee. Pace ca 6:00. Danach Frühstück?',
       category: 'Sport',
       location: 'Praterstern',
       date: 'Mo, 18:30',
@@ -79,14 +84,4 @@ export class App {
   closeGroup() {
     this.selectedGroup = null;
   }
-
-  join() {
-    this.joining = true;
-    setTimeout(() => {
-      this.joining = false;
-      this.closeGroup();
-      // Hier würde ein Toast erscheinen
-    }, 1500);
-  }
 }
-

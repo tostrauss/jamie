@@ -86,4 +86,24 @@ export class BackendService {
     console.log(`Backend Request: Joining Group ${groupId}...`);
     return of(true).pipe(delay(1000)); // 1 Sekunde Netzwerk-Verzögerung simulieren
   }
+    // Simuliert das Erstellen einer neuen Gruppe
+    createGroup(data: { title: string; category: string; location: string; date: string; description: string; }) {
+    console.log('Backend Request: Creating Group...', data);
+    const newGroup: ActivityGroup = {
+      id: (this.groups().length + 1).toString(),
+      title: data.title,
+        description: data.description,
+        category: data.category,
+        location: data.location,
+        date: data.date,
+        currentMembers: 1,
+        maxMembers: 25,
+        avatarSeeds: [Math.floor(Math.random() * 1000)],
+        imageUrl: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&q=80&w=600' // Platzhalterbild
+    };
+    // Füge die neue Gruppe zum Signal hinzu
+    this.groups.set([...this.groups(), newGroup]);
+    return of(newGroup).pipe(delay(1000)); // 1 Sekunde Netzwerk-Verzögerung simulieren
+  }
+
 }

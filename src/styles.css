@@ -1,5 +1,5 @@
 /* src/styles.css */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
 @theme {
@@ -7,11 +7,9 @@
   --color-jamie-card: #2e2e42;
   --color-jamie-orange: #ff7043;
   --color-jamie-orange-light: #ff8a65;
-  
-  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
-/* Basis Reset */
 html, body {
   height: 100%;
   margin: 0;
@@ -21,21 +19,149 @@ html, body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Custom Utilities - WICHTIG: Diese müssen aktiv sein! */
+body.modal-open {
+  overflow: hidden;
+}
+
+/* Input Fields */
 .input-jamie {
-  @apply w-full bg-[#1c1c2e] text-white rounded-xl px-4 py-3.5 border border-white/10 focus:border-[#ff7043] focus:outline-none transition-all placeholder-gray-500;
+  @apply w-full bg-[#1c1c2e] text-white rounded-xl px-4 py-3.5 
+         border border-white/10 
+         focus:border-[#ff7043] focus:outline-none 
+         transition-all placeholder-gray-500;
 }
 
+/* Buttons - BASE */
+.btn-jamie {
+  @apply inline-flex items-center justify-center font-semibold rounded-xl
+         transition-all duration-200
+         disabled:opacity-50 disabled:cursor-not-allowed;
+}
+
+/* Buttons - PRIMARY */
 .btn-primary {
-  @apply bg-gradient-to-r from-[#ff8a65] to-[#ff7043] text-white font-bold shadow-lg shadow-orange-500/20 active:scale-95 transition-all;
+  @apply bg-gradient-to-r from-[#ff8a65] to-[#ff7043] 
+         text-white font-bold shadow-lg shadow-orange-500/25
+         hover:shadow-orange-500/40 active:scale-[0.98];
 }
 
-/* Animationen */
-.animate-zoom-in {
-  animation: zoomIn 0.4s ease-out forwards;
+/* Buttons - SECONDARY */
+.btn-secondary {
+  @apply bg-white/5 text-white border border-white/10
+         hover:bg-white/10 active:scale-[0.98];
+}
+
+/* Hide scrollbar */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Safe areas */
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.pt-safe-top {
+  padding-top: max(env(safe-area-inset-top), 12px);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.animate-fade-in {
+  animation: fadeIn 0.2s ease-out forwards;
 }
 
 @keyframes zoomIn {
   from { opacity: 0; transform: scale(0.95); }
   to { opacity: 1; transform: scale(1); }
+}
+.animate-zoom-in {
+  animation: zoomIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(100%); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-slide-up {
+  animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-slide-down {
+  animation: slideDown 0.3s ease-out forwards;
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+.animate-scale-in {
+  animation: scaleIn 0.2s ease-out forwards;
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+.animate-slide-in {
+  animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@media (max-width: 640px) {
+  @keyframes slideInRight {
+    from { transform: translateY(-100%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+}
+
+/* src/styles.css - Ergänzung */
+
+/* Safe Area for iOS */
+.pb-safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.pt-safe-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+.mt-safe-top {
+  margin-top: env(safe-area-inset-top, 0px);
+}
+
+/* Badge bounce animation */
+@keyframes bounce-subtle {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+.animate-bounce-subtle {
+  animation: bounce-subtle 2s ease-in-out infinite;
+}
+
+/* Pulse for create button */
+@keyframes ping {
+  75%, 100% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+}
+
+.animate-ping {
+  animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
 }

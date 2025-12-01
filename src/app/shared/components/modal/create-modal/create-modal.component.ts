@@ -1,6 +1,4 @@
 // src/app/shared/components/modal/create-modal/create-modal.component.ts
-// Jamie App - Create Activity Modal Component
-
 import { Component, EventEmitter, Output, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -20,7 +18,7 @@ import { ActivityCategory, CATEGORY_META, CITIES, CreateGroupRequest } from '../
         (click)="closeModal()">
       </div>
       
-      <!-- Modal Card (Bottom Sheet on Mobile) -->
+      <!-- Modal -->
       <div class="relative bg-[#2e2e42] w-full max-w-md rounded-t-[28px] sm:rounded-[28px] overflow-hidden shadow-2xl border border-white/10 animate-slide-up max-h-[90vh] overflow-y-auto">
         
         <!-- Header -->
@@ -32,7 +30,7 @@ import { ActivityCategory, CATEGORY_META, CITIES, CreateGroupRequest } from '../
           <button 
             (click)="closeModal()" 
             class="bg-white/5 hover:bg-white/10 p-2 rounded-full text-white transition-colors"
-            aria-label="Close">
+            aria-label="Schließen">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
             </svg>
@@ -40,18 +38,17 @@ import { ActivityCategory, CATEGORY_META, CITIES, CreateGroupRequest } from '../
         </div>
     
         <!-- Form -->
-        <form (submit)="submit($event)" class="p-5 space-y-5">
+        <form (ngSubmit)="submit()" class="p-5 space-y-5">
           
-          <!-- Title Input -->
+          <!-- Title -->
           <div class="space-y-2">
-            <label class="text-xs text-gray-400 uppercase font-bold tracking-wider flex items-center gap-1">
-              Titel
-              <span class="text-[#ff7043]">*</span>
+            <label class="text-xs text-gray-400 uppercase font-bold tracking-wider">
+              Titel <span class="text-[#ff7043]">*</span>
             </label>
             <input 
               type="text" 
-              name="title" 
               [(ngModel)]="formData.title" 
+              name="title"
               placeholder="z.B. Beachvolleyball am Donaukanal"
               required
               minlength="5"
@@ -65,11 +62,10 @@ import { ActivityCategory, CATEGORY_META, CITIES, CreateGroupRequest } from '../
             </div>
           </div>
 
-          <!-- Category Select -->
+          <!-- Category -->
           <div class="space-y-2">
-            <label class="text-xs text-gray-400 uppercase font-bold tracking-wider flex items-center gap-1">
-              Kategorie
-              <span class="text-[#ff7043]">*</span>
+            <label class="text-xs text-gray-400 uppercase font-bold tracking-wider">
+              Kategorie <span class="text-[#ff7043]">*</span>
             </label>
             <div class="grid grid-cols-3 gap-2">
               @for (cat of categoryList; track cat.id) {
@@ -90,16 +86,15 @@ import { ActivityCategory, CATEGORY_META, CITIES, CreateGroupRequest } from '../
             </div>
           </div>
 
-          <!-- City Select -->
+          <!-- City -->
           <div class="space-y-2">
-            <label class="text-xs text-gray-400 uppercase font-bold tracking-wider flex items-center gap-1">
-              Stadt
-              <span class="text-[#ff7043]">*</span>
+            <label class="text-xs text-gray-400 uppercase font-bold tracking-wider">
+              Stadt <span class="text-[#ff7043]">*</span>
             </label>
             <div class="relative">
               <select 
-                name="city"
                 [(ngModel)]="formData.city"
+                name="city"
                 required
                 class="input-jamie appearance-none cursor-pointer pr-10">
                 @for (city of cities; track city) {
@@ -112,32 +107,29 @@ import { ActivityCategory, CATEGORY_META, CITIES, CreateGroupRequest } from '../
             </div>
           </div>
 
+          <!-- Location & Date -->
           <div class="grid grid-cols-2 gap-4">
-            <!-- Location -->
             <div class="space-y-2">
-              <label class="text-xs text-gray-400 uppercase font-bold tracking-wider flex items-center gap-1">
-                Treffpunkt
-                <span class="text-[#ff7043]">*</span>
+              <label class="text-xs text-gray-400 uppercase font-bold tracking-wider">
+                Treffpunkt <span class="text-[#ff7043]">*</span>
               </label>
               <input 
                 type="text" 
+                [(ngModel)]="formData.location"
                 name="location" 
-                [(ngModel)]="formData.location" 
                 placeholder="z.B. Donaukanal"
                 required
                 class="input-jamie">
             </div>
             
-            <!-- Date & Time -->
             <div class="space-y-2">
-              <label class="text-xs text-gray-400 uppercase font-bold tracking-wider flex items-center gap-1">
-                Datum & Zeit
-                <span class="text-[#ff7043]">*</span>
+              <label class="text-xs text-gray-400 uppercase font-bold tracking-wider">
+                Wann? <span class="text-[#ff7043]">*</span>
               </label>
               <input 
                 type="datetime-local" 
-                name="date" 
                 [(ngModel)]="formData.date"
+                name="date"
                 [min]="minDate"
                 required
                 class="input-jamie">
@@ -154,7 +146,7 @@ import { ActivityCategory, CATEGORY_META, CITIES, CreateGroupRequest } from '../
                 type="button"
                 (click)="decrementMembers()"
                 [disabled]="formData.maxMembers <= 2"
-                class="w-10 h-10 rounded-full bg-[#1c1c2e] border border-white/10 flex items-center justify-center text-white hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                class="w-10 h-10 rounded-full bg-[#1c1c2e] border border-white/10 flex items-center justify-center text-white hover:bg-white/5 disabled:opacity-30 transition-colors">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/>
                 </svg>
@@ -167,7 +159,7 @@ import { ActivityCategory, CATEGORY_META, CITIES, CreateGroupRequest } from '../
                 type="button"
                 (click)="incrementMembers()"
                 [disabled]="formData.maxMembers >= 50"
-                class="w-10 h-10 rounded-full bg-[#1c1c2e] border border-white/10 flex items-center justify-center text-white hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                class="w-10 h-10 rounded-full bg-[#1c1c2e] border border-white/10 flex items-center justify-center text-white hover:bg-white/5 disabled:opacity-30 transition-colors">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                 </svg>
@@ -181,8 +173,8 @@ import { ActivityCategory, CATEGORY_META, CITIES, CreateGroupRequest } from '../
               Beschreibung
             </label>
             <textarea 
+              [(ngModel)]="formData.description"
               name="description" 
-              [(ngModel)]="formData.description" 
               rows="3" 
               placeholder="Worum geht's? Was sollen die Teilnehmer mitbringen?"
               maxlength="500"
@@ -192,7 +184,7 @@ import { ActivityCategory, CATEGORY_META, CITIES, CreateGroupRequest } from '../
             </div>
           </div>
     
-          <!-- Submit Button -->
+          <!-- Submit -->
           <button 
             type="submit" 
             [disabled]="!isValid() || creating()"
@@ -226,9 +218,9 @@ export class CreateModalComponent {
     ...meta
   }));
 
-  formData: CreateGroupRequest & { maxMembers: number } = {
+  formData = {
     title: '',
-    category: 'SOCIAL',
+    category: 'SOCIAL' as ActivityCategory,
     city: this.backend.selectedCity(),
     location: '',
     date: '',
@@ -250,19 +242,14 @@ export class CreateModalComponent {
   }
 
   incrementMembers(): void {
-    if (this.formData.maxMembers < 50) {
-      this.formData.maxMembers++;
-    }
+    if (this.formData.maxMembers < 50) this.formData.maxMembers++;
   }
 
   decrementMembers(): void {
-    if (this.formData.maxMembers > 2) {
-      this.formData.maxMembers--;
-    }
+    if (this.formData.maxMembers > 2) this.formData.maxMembers--;
   }
 
-  submit(event: Event): void {
-    event.preventDefault();
+  submit(): void {
     if (!this.isValid() || this.creating()) return;
 
     this.creating.set(true);

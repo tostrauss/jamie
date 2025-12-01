@@ -1,5 +1,4 @@
 // backend/prisma/schema.prisma
-// Jamie App - Social Activity Platform
 
 generator client {
   provider = "prisma-client-js"
@@ -11,100 +10,145 @@ datasource db {
 }
 
 // ============================================
-// USER MODEL
+// USER
 // ============================================
 model User {
-  id          String    @id @default(uuid())
-  email       String    @unique
-  username    String    @unique
-  password    String    // Hashed with bcrypt
-  avatarUrl   String?
-  bio         String?
-  city        String?   // Wien, Berlin, etc.
-  isVerified  Boolean   @default(false)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id               String    @id @default(uuid())
+  email            String    @unique
+  username         String    @unique
+  passwordHash     String
+  avatarUrl        String?
+  bio              String?
+  city             String?
+  
+  // Auth
+  refreshTokens    String[]  @default([])
+  resetToken       String?
+  resetTokenExpiry DateTime?
+  emailVerified    Boolean   @default(false)
+  verifyToken      String?
+  
+  // Settings (JSON)
+  settings         Json?     @default("{}")
+  
+  // Status
+  isActive         Boolean   @default(true)
+  lastLoginAt      DateTime?
+  
+  // Timestamps
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   // Relations
-  createdGroups   ActivityGroup[] @relation("GroupCreator")
-  participations  Participant[]
-  messages        Message[]
-  notifications   Notification[]  @relation("NotificationRecipient")
+  createdGroups    ActivityGroup[]  @relation("GroupCreator")
+  participations   Participant[]
+  messages         Message[]
+  notifications    Notification[]
 
-  @@index([city])
   @@index([email])
+  @@index([username])
+  @@index([city])
+  @@map("users")
 }
 
 // ============================================
-// ACTIVITY GROUP MODEL
+// ACTIVITY GROUP
 // ============================================
 model ActivityGroup {
-  id             String        @id @default(uuid())
-  title          String
-  description    String
-  category       ActivityCategory
-  location       String
-  city           String        // For filtering by city
-  date           DateTime
-  maxMembers     Int           @default(10)
-  imageUrl       String?
-  avatarSeeds    Int[]         @default([])  // For displaying random avatars
-  isActive       Boolean       @default(true)
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  imageUrl    String?
+  category    Category
+  location    String
+  city        String
+  date        DateTime
+  maxMembers  Int      @default(10)
+  
+  // Settings
+  isPrivate   Boolean  @default(false)
+  autoApprove Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  
+  // Timestamps
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   // Relations
-  creatorId      String
-  creator        User          @relation("GroupCreator", fields: [creatorId], references: [id], onDelete: Cascade)
-  participants   Participant[]
-  messages       Message[]
+  creatorId    String
+  creator      User          @relation("GroupCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+  participants Participant[]
+  messages     Message[]
+  notifications Notification[]
 
-  @@index([city])
-  @@index([category])
-  @@index([date])
   @@index([creatorId])
+  @@index([category])
+  @@index([city])
+  @@index([date])
+  @@index([isActive])
+  @@index([createdAt])
+  @@map("activity_groups")
 }
 
 // ============================================
-// PARTICIPANT MODEL (Join Table)
+// PARTICIPANT
 // ============================================
 model Participant {
   id        String            @id @default(uuid())
   status    ParticipantStatus @default(PENDING)
-  message   String?           // Optional message when joining
+  message   String?           // Join request message
+  role      ParticipantRole   @default(MEMBER)
+  
+  // Timestamps
   joinedAt  DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
 
+  // Relations
   userId    String
-  groupId   String
-
   user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  groupId   String
   group     ActivityGroup     @relation(fields: [groupId], references: [id], onDelete: Cascade)
 
   @@unique([userId, groupId])
   @@index([userId])
   @@index([groupId])
+  @@index([status])
+  @@map("participants")
 }
 
 // ============================================
-// MESSAGE MODEL (Group Chat)
+// MESSAGE
 // ============================================
 model Message {
-  id        String        @id @default(uuid())
+  id        String   @id @default(uuid())
   content   String
-  createdAt DateTime      @default(now())
+  
+  // Media (optional)
+  mediaUrl  String?
+  mediaType MediaType?
+  
+  // Status
+  isEdited  Boolean  @default(false)
+  isDeleted Boolean  @default(false)
+  
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
+  // Relations
   senderId  String
-  groupId   String
-
   sender    User          @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  groupId   String
   group     ActivityGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
 
-  @@index([groupId])
   @@index([senderId])
+  @@index([groupId])
+  @@index([createdAt])
+  @@map("messages")
 }
 
 // ============================================
-// NOTIFICATION MODEL
+// NOTIFICATION
 // ============================================
 model Notification {
   id        String           @id @default(uuid())
@@ -112,22 +156,27 @@ model Notification {
   title     String
   content   String
   isRead    Boolean          @default(false)
+  
+  // Timestamps
   createdAt DateTime         @default(now())
 
+  // Relations
   userId    String
-  user      User             @relation("NotificationRecipient", fields: [userId], references: [id], onDelete: Cascade)
-
-  // Optional reference to related entities
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   groupId   String?
+  group     ActivityGroup?   @relation(fields: [groupId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([groupId])
   @@index([isRead])
+  @@index([createdAt])
+  @@map("notifications")
 }
 
 // ============================================
 // ENUMS
 // ============================================
-enum ActivityCategory {
+enum Category {
   SPORT
   PARTY
   KULTUR
@@ -145,11 +194,26 @@ enum ParticipantStatus {
   REJECTED
 }
 
+enum ParticipantRole {
+  MEMBER
+  MODERATOR
+  ADMIN
+}
+
 enum NotificationType {
   JOIN_REQUEST
   REQUEST_APPROVED
   REQUEST_REJECTED
   NEW_MESSAGE
-  EVENT_REMINDER
-  GROUP_UPDATE
+  GROUP_UPDATED
+  GROUP_DELETED
+  MEMBER_LEFT
+  REMINDER
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+  AUDIO
+  FILE
 }

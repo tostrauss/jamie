@@ -1,12 +1,10 @@
 // src/app/services/backend.service.ts
-// Jamie App - Backend API Service
-
-import { Injectable, inject, signal, computed } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable, of } from 'rxjs';
-import { tap, map, catchError, finalize } from 'rxjs/operators';
+import { Injectable, inject, signal, computed, OnDestroy } from '@angular/core';
+import { HttpClient, HttpParams, HttpErrorResponse } from '@angular/common/http';
+import { Observable, Subject, of, throwError } from 'rxjs';
+import { tap, map, catchError, finalize, takeUntil, retry } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
-import { SocketService } from './socket.service'; // Dein neuer Socket Service
+import { SocketService } from './socket.service';
 import {
   ActivityGroup,
   CreateGroupRequest,
@@ -15,40 +13,44 @@ import {
   Category,
   GroupFilters,
   Participant,
-  Message,
   Notification,
-  PaginatedResponse,
   CATEGORY_META,
-  ActivityCategory
+  ActivityCategory,
+  CITIES
 } from '../models/types';
 
 @Injectable({
   providedIn: 'root'
 })
-export class BackendService {
+export class BackendService implements OnDestroy {
   private readonly http = inject(HttpClient);
   private readonly socket = inject(SocketService);
   private readonly apiUrl = environment.apiUrl;
+  private readonly destroy$ = new Subject<void>();
 
   // ============================================
-  // STATE (Signals)
+  // STATE
   // ============================================
   private readonly _groups = signal<ActivityGroup[]>([]);
   private readonly _isLoadingGroups = signal(false);
-  private readonly _selectedCity = signal<string>('Wien');
+  private readonly _selectedCity = signal<string>(this.getInitialCity());
   private readonly _activeFilters = signal<GroupFilters>({});
   private readonly _notifications = signal<Notification[]>([]);
+  private readonly _error = signal<string | null>(null);
 
   // Public readonly signals
   readonly groups = this._groups.asReadonly();
   readonly isLoadingGroups = this._isLoadingGroups.asReadonly();
   readonly selectedCity = this._selectedCity.asReadonly();
-  readonly notifications = this._notifications.asReadonly();
-  
-  // NEU: Wir machen die Filter öffentlich lesbar für die Komponenten!
   readonly activeFilters = this._activeFilters.asReadonly();
+  readonly notifications = this._notifications.asReadonly();
+  readonly error = this._error.asReadonly();
 
-  // Categories
+  // Socket connection status (delegated)
+  readonly socketStatus = this.socket.status;
+  readonly isSocketConnected = this.socket.isConnected;
+
+  // Categories (static)
   readonly categories = signal<Category[]>(
     Object.entries(CATEGORY_META).map(([id, meta]) => ({
       id: id as ActivityCategory,
@@ -56,31 +58,58 @@ export class BackendService {
     }))
   );
 
-  // Computed signals
+  // Computed: Filtered groups
   readonly filteredGroups = computed(() => {
     const groups = this._groups();
     const filters = this._activeFilters();
     const city = this._selectedCity();
-    
+
     return groups.filter(group => {
-      if (city && group.city !== city) return false;
-      if (filters.category && group.category !== filters.category) return false;
+      // City filter
+      if (city && group.city.toLowerCase() !== city.toLowerCase()) {
+        return false;
+      }
+      
+      // Category filter
+      if (filters.category && group.category !== filters.category) {
+        return false;
+      }
+      
+      // Search filter
       if (filters.search) {
         const searchLower = filters.search.toLowerCase();
         const matchesTitle = group.title.toLowerCase().includes(searchLower);
-        const matchesDesc = group.description.toLowerCase().includes(searchLower);
-        if (!matchesTitle && !matchesDesc) return false;
+        const matchesDesc = group.description?.toLowerCase().includes(searchLower);
+        const matchesLocation = group.location.toLowerCase().includes(searchLower);
+        if (!matchesTitle && !matchesDesc && !matchesLocation) {
+          return false;
+        }
       }
-      if (filters.hasSpace && group.currentMembers >= group.maxMembers) return false;
-      if (filters.dateFrom && new Date(group.date) < new Date(filters.dateFrom)) return false;
-      if (filters.dateTo && new Date(group.date) > new Date(filters.dateTo)) return false;
+      
+      // Has space filter
+      if (filters.hasSpace && group.currentMembers >= group.maxMembers) {
+        return false;
+      }
+      
+      // Date filters
+      if (filters.dateFrom && new Date(group.date) < new Date(filters.dateFrom)) {
+        return false;
+      }
+      if (filters.dateTo && new Date(group.date) > new Date(filters.dateTo)) {
+        return false;
+      }
+      
       return true;
     });
   });
 
-  readonly unreadNotificationCount = computed(() => 
+  // Computed: Notification count
+  readonly unreadNotificationCount = computed(() =>
     this._notifications().filter(n => !n.isRead).length
   );
+
+  // Computed: Has groups
+  readonly hasGroups = computed(() => this._groups().length > 0);
 
   constructor() {
     this.loadGroups();
@@ -88,51 +117,140 @@ export class BackendService {
   }
 
   // ============================================
-  // REALTIME
+  // INITIALIZATION
   // ============================================
+
+  private getInitialCity(): string {
+    // Try to get from localStorage
+    const saved = localStorage.getItem('jamie_selected_city');
+    if (saved && CITIES.includes(saved as any)) {
+      return saved;
+    }
+    return 'Wien';
+  }
+
   private setupRealtimeUpdates(): void {
-    // Verbindung aufbauen
+    // Connect socket
     this.socket.connect();
 
-    // Hören auf neue Gruppen
-    this.socket.on<ActivityGroup>('group_created').subscribe(newGroup => {
-      console.log('⚡ Realtime: New Group received', newGroup);
-      this._groups.update(current => [newGroup, ...current]);
-    });
+    // New group created
+    this.socket.on<ActivityGroup>('group_created')
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(newGroup => {
+        console.log('⚡ Realtime: Group created', newGroup.title);
+        this._groups.update(groups => {
+          // Avoid duplicates
+          if (groups.some(g => g.id === newGroup.id)) {
+            return groups;
+          }
+          return [this.transformGroup(newGroup), ...groups];
+        });
+      });
+
+    // Group updated
+    this.socket.on<ActivityGroup>('group_updated')
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(updatedGroup => {
+        console.log('⚡ Realtime: Group updated', updatedGroup.title);
+        this._groups.update(groups =>
+          groups.map(g => g.id === updatedGroup.id 
+            ? this.transformGroup(updatedGroup) 
+            : g
+          )
+        );
+      });
+
+    // Group deleted
+    this.socket.on<{ id: string }>('group_deleted')
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(({ id }) => {
+        console.log('⚡ Realtime: Group deleted', id);
+        this._groups.update(groups => groups.filter(g => g.id !== id));
+      });
+
+    // Member joined a group
+    this.socket.on<{ groupId: string; member: any }>('member_joined')
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(({ groupId, member }) => {
+        console.log('⚡ Realtime: Member joined', groupId);
+        this._groups.update(groups =>
+          groups.map(g => {
+            if (g.id === groupId) {
+              return {
+                ...g,
+                currentMembers: g.currentMembers + 1,
+                avatarSeeds: [...g.avatarSeeds, Math.floor(Math.random() * 10000)]
+              };
+            }
+            return g;
+          })
+        );
+      });
+
+    // Member left a group
+    this.socket.on<{ userId: string; groupId: string }>('member_left')
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(({ groupId }) => {
+        console.log('⚡ Realtime: Member left', groupId);
+        this._groups.update(groups =>
+          groups.map(g => {
+            if (g.id === groupId) {
+              return {
+                ...g,
+                currentMembers: Math.max(1, g.currentMembers - 1)
+              };
+            }
+            return g;
+          })
+        );
+      });
+
+    // Join request response (for current user)
+    this.socket.on<{ groupId: string; status: string; groupTitle: string }>('request_response')
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(({ groupId, status, groupTitle }) => {
+        console.log('⚡ Realtime: Request response', status);
+        this._groups.update(groups =>
+          groups.map(g => {
+            if (g.id === groupId) {
+              return {
+                ...g,
+                isMember: status === 'APPROVED',
+                isPending: false
+              };
+            }
+            return g;
+          })
+        );
+      });
   }
 
   // ============================================
-  // GROUP METHODS
+  // GROUP API METHODS
   // ============================================
 
   loadGroups(): void {
-    this._isLoadingGroups.set(true);
-    
-    this.http.get<ActivityGroup[]>(`${this.apiUrl}/groups`).pipe(
-      map(groups => this.transformGroups(groups)),
-      catchError(error => {
-        console.error('Failed to load groups:', error);
-        return of([]);
-      }),
-      finalize(() => this._isLoadingGroups.set(false))
-    ).subscribe(groups => this._groups.set(groups));
-  }
+    if (this._isLoadingGroups()) return;
 
-  getGroups(filters?: GroupFilters): Observable<ActivityGroup[]> {
-    let params = new HttpParams();
-    
-    if (filters?.category) params = params.set('category', filters.category);
-    if (filters?.city) params = params.set('city', filters.city);
-    if (filters?.search) params = params.set('search', filters.search);
-    
-    return this.http.get<ActivityGroup[]>(`${this.apiUrl}/groups`, { params }).pipe(
-      map(groups => this.transformGroups(groups))
-    );
+    this._isLoadingGroups.set(true);
+    this._error.set(null);
+
+    this.http.get<{ data: ActivityGroup[]; total: number }>(`${this.apiUrl}/groups`)
+      .pipe(
+        retry(2),
+        map(response => response.data || response),
+        map(groups => Array.isArray(groups) ? groups : []),
+        map(groups => this.transformGroups(groups)),
+        catchError(error => this.handleError(error, [])),
+        finalize(() => this._isLoadingGroups.set(false))
+      )
+      .subscribe(groups => this._groups.set(groups));
   }
 
   getGroupById(id: string): Observable<ActivityGroup> {
     return this.http.get<ActivityGroup>(`${this.apiUrl}/groups/${id}`).pipe(
-      map(group => this.transformGroup(group))
+      map(group => this.transformGroup(group)),
+      catchError(error => this.handleError(error))
     );
   }
 
@@ -145,9 +263,15 @@ export class BackendService {
     return this.http.post<ActivityGroup>(`${this.apiUrl}/groups`, groupData).pipe(
       map(group => this.transformGroup(group)),
       tap(newGroup => {
-        // Optimistic update nicht zwingend nötig wegen Socket, aber sicherer
-        // this._groups.update(groups => [newGroup, ...groups]); 
-      })
+        // Optimistic update (socket will also push, but this is faster)
+        this._groups.update(groups => {
+          if (groups.some(g => g.id === newGroup.id)) {
+            return groups;
+          }
+          return [newGroup, ...groups];
+        });
+      }),
+      catchError(error => this.handleError(error))
     );
   }
 
@@ -155,10 +279,11 @@ export class BackendService {
     return this.http.put<ActivityGroup>(`${this.apiUrl}/groups/${id}`, data).pipe(
       map(group => this.transformGroup(group)),
       tap(updated => {
-        this._groups.update(groups => 
+        this._groups.update(groups =>
           groups.map(g => g.id === id ? updated : g)
         );
-      })
+      }),
+      catchError(error => this.handleError(error))
     );
   }
 
@@ -166,37 +291,64 @@ export class BackendService {
     return this.http.delete<void>(`${this.apiUrl}/groups/${id}`).pipe(
       tap(() => {
         this._groups.update(groups => groups.filter(g => g.id !== id));
-      })
+      }),
+      catchError(error => this.handleError(error))
     );
   }
 
   joinGroup(groupId: string, request?: JoinGroupRequest): Observable<Participant> {
-    return this.http.post<Participant>(`${this.apiUrl}/groups/${groupId}/join`, request || {}).pipe(
+    return this.http.post<Participant>(
+      `${this.apiUrl}/groups/${groupId}/join`,
+      request || {}
+    ).pipe(
       tap(() => {
-        this._groups.update(groups => 
+        this._groups.update(groups =>
           groups.map(g => g.id === groupId ? { ...g, isPending: true } : g)
         );
-      })
+      }),
+      catchError(error => this.handleError(error))
     );
   }
 
   leaveGroup(groupId: string): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/groups/${groupId}/leave`).pipe(
       tap(() => {
-        this._groups.update(groups => 
+        this._groups.update(groups =>
           groups.map(g => {
             if (g.id === groupId) {
-              return { 
-                ...g, 
-                isMember: false, 
+              return {
+                ...g,
+                isMember: false,
                 isPending: false,
-                currentMembers: Math.max(0, g.currentMembers - 1)
+                currentMembers: Math.max(1, g.currentMembers - 1)
               };
             }
             return g;
           })
         );
-      })
+      }),
+      catchError(error => this.handleError(error))
+    );
+  }
+
+  getParticipants(groupId: string): Observable<{ participants: Participant[]; isCreator: boolean }> {
+    return this.http.get<{ participants: Participant[]; isCreator: boolean }>(
+      `${this.apiUrl}/groups/${groupId}/participants`
+    ).pipe(
+      catchError(error => this.handleError(error))
+    );
+  }
+
+  updateParticipantStatus(
+    groupId: string,
+    participantId: string,
+    status: 'APPROVED' | 'REJECTED'
+  ): Observable<Participant> {
+    return this.http.put<Participant>(
+      `${this.apiUrl}/groups/${groupId}/participants/${participantId}`,
+      { status }
+    ).pipe(
+      catchError(error => this.handleError(error))
     );
   }
 
@@ -206,25 +358,67 @@ export class BackendService {
 
   setCity(city: string): void {
     this._selectedCity.set(city);
+    localStorage.setItem('jamie_selected_city', city);
   }
 
   setFilters(filters: GroupFilters): void {
     this._activeFilters.set(filters);
   }
 
+  updateFilters(updates: Partial<GroupFilters>): void {
+    this._activeFilters.update(current => ({ ...current, ...updates }));
+  }
+
   clearFilters(): void {
     this._activeFilters.set({});
   }
 
-  getCategories() {
-    return this.categories;
+  toggleCategoryFilter(category: ActivityCategory): void {
+    this._activeFilters.update(current => ({
+      ...current,
+      category: current.category === category ? undefined : category
+    }));
+  }
+
+  // ============================================
+  // NOTIFICATION METHODS
+  // ============================================
+
+  loadNotifications(): void {
+    this.http.get<Notification[]>(`${this.apiUrl}/notifications`)
+      .pipe(catchError(() => of([])))
+      .subscribe(notifications => this._notifications.set(notifications));
+  }
+
+  markNotificationRead(id: string): void {
+    this.http.put(`${this.apiUrl}/notifications/${id}/read`, {})
+      .pipe(catchError(() => of(null)))
+      .subscribe(() => {
+        this._notifications.update(list =>
+          list.map(n => n.id === id ? { ...n, isRead: true } : n)
+        );
+      });
+  }
+
+  markAllNotificationsRead(): void {
+    this.http.put(`${this.apiUrl}/notifications/read-all`, {})
+      .pipe(catchError(() => of(null)))
+      .subscribe(() => {
+        this._notifications.update(list =>
+          list.map(n => ({ ...n, isRead: true }))
+        );
+      });
   }
 
   // ============================================
   // HELPER METHODS
   // ============================================
 
-  private transformGroups(groups: ActivityGroup[]): ActivityGroup[] {
+  getCategories() {
+    return this.categories;
+  }
+
+  private transformGroups(groups: any[]): ActivityGroup[] {
     return groups.map(g => this.transformGroup(g));
   }
 
@@ -232,8 +426,11 @@ export class BackendService {
     return {
       ...group,
       currentMembers: group.currentMembers ?? (group.participants?.length ?? 0) + 1,
-      avatarSeeds: group.avatarSeeds ?? this.generateAvatarSeeds(3),
-      imageUrl: group.imageUrl ?? this.getDefaultImageForCategory(group.category)
+      avatarSeeds: group.avatarSeeds?.length 
+        ? group.avatarSeeds 
+        : this.generateAvatarSeeds(Math.min(group.currentMembers || 1, 4)),
+      imageUrl: group.imageUrl || this.getDefaultImageForCategory(group.category),
+      description: group.description || ''
     };
   }
 
@@ -254,5 +451,41 @@ export class BackendService {
       OTHER: 'https://images.unsplash.com/photo-1517457373958-b7bdd4587205?w=600'
     };
     return images[category] || images.OTHER;
+  }
+
+  private handleError<T>(error: HttpErrorResponse, fallback?: T): Observable<T> {
+    let message = 'Ein Fehler ist aufgetreten';
+
+    if (error.error?.error) {
+      message = error.error.error;
+    } else if (error.status === 0) {
+      message = 'Keine Verbindung zum Server';
+    } else if (error.status === 401) {
+      message = 'Nicht autorisiert';
+    } else if (error.status === 403) {
+      message = 'Keine Berechtigung';
+    } else if (error.status === 404) {
+      message = 'Nicht gefunden';
+    } else if (error.status >= 500) {
+      message = 'Serverfehler';
+    }
+
+    this._error.set(message);
+    console.error('API Error:', message, error);
+
+    if (fallback !== undefined) {
+      return of(fallback);
+    }
+    
+    return throwError(() => ({ message, status: error.status }));
+  }
+
+  // ============================================
+  // CLEANUP
+  // ============================================
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }

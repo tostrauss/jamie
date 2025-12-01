@@ -1,142 +1,63 @@
 // src/app/models/types.ts
-// Jamie App - Type Definitions
 
 // ============================================
-// USER TYPES
+// USER
 // ============================================
 export interface User {
   id: string;
   email: string;
   username: string;
-  avatarUrl: string | null;
-  bio: string | null;
-  city: string | null;
-  isVerified: boolean;
+  avatarUrl?: string;
+  bio?: string;
+  city?: string;
+  emailVerified?: boolean;
+  isActive?: boolean;
+  lastLoginAt?: string;
   createdAt: string;
-}
-
-export interface UserProfile extends User {
-  joinedGroups: ParticipantWithGroup[];
-  createdGroups: ActivityGroup[];
-  stats: UserStats;
+  updatedAt: string;
+  settings?: UserSettings;
+  stats?: UserStats;
 }
 
 export interface UserStats {
-  groupsJoined: number;
   groupsCreated: number;
-  activitiesAttended: number;
+  groupsJoined: number;
+  pendingRequests?: number;
+  messagesSent?: number;
+  upcomingEvents?: number;
+  totalGroups?: number;
+  memberSince: string;
 }
 
-// ============================================
-// ACTIVITY GROUP TYPES
-// ============================================
-export type ActivityCategory = 
-  | 'SPORT' 
-  | 'PARTY' 
-  | 'KULTUR' 
-  | 'NATUR' 
-  | 'SOCIAL' 
-  | 'FOOD' 
-  | 'TRAVEL' 
-  | 'GAMING' 
-  | 'OTHER';
+export interface UserSettings {
+  emailNotifications?: boolean;
+  pushNotifications?: boolean;
+  profileVisibility?: 'PUBLIC' | 'PRIVATE';
+  showEmail?: boolean;
+  showCity?: boolean;
+}
 
-export interface ActivityGroup {
+export interface PublicUser {
   id: string;
-  title: string;
-  description: string;
-  category: ActivityCategory;
-  location: string;
-  city: string;
-  date: string;
-  maxMembers: number;
-  currentMembers: number;
-  imageUrl: string | null;
-  avatarSeeds: number[];
-  isActive: boolean;
+  username: string;
+  avatarUrl?: string;
+  bio?: string;
+  city?: string;
   createdAt: string;
-  creator: UserSummary;
-  participants?: Participant[];
-  isMember?: boolean;
-  isPending?: boolean;
-}
-
-export interface CreateGroupRequest {
-  title: string;
-  description: string;
-  category: ActivityCategory;
-  location: string;
-  city: string;
-  date: string;
-  maxMembers?: number;
-  imageUrl?: string;
-}
-
-export interface UpdateGroupRequest extends Partial<CreateGroupRequest> {
-  isActive?: boolean;
+  stats?: UserStats;
+  recentGroups?: ActivityGroup[];
+  isOwnProfile?: boolean;
 }
 
 // ============================================
-// PARTICIPANT TYPES
+// AUTH
 // ============================================
-export type ParticipantStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
-
-export interface Participant {
-  id: string;
-  status: ParticipantStatus;
-  message: string | null;
-  joinedAt: string;
-  user: UserSummary;
+export interface AuthTokens {
+  accessToken: string;
+  refreshToken: string;
+  expiresIn: number;
 }
 
-export interface ParticipantWithGroup extends Participant {
-  group: ActivityGroup;
-}
-
-export interface JoinGroupRequest {
-  message?: string;
-}
-
-// ============================================
-// MESSAGE TYPES
-// ============================================
-export interface Message {
-  id: string;
-  content: string;
-  createdAt: string;
-  sender: UserSummary;
-  groupId: string;
-}
-
-export interface SendMessageRequest {
-  content: string;
-  groupId: string;
-}
-
-// ============================================
-// NOTIFICATION TYPES
-// ============================================
-export type NotificationType = 
-  | 'JOIN_REQUEST'
-  | 'REQUEST_APPROVED'
-  | 'REQUEST_REJECTED'
-  | 'NEW_MESSAGE'
-  | 'EVENT_REMINDER'
-  | 'GROUP_UPDATE';
-
-export interface Notification {
-  id: string;
-  type: NotificationType;
-  title: string;
-  content: string;
-  isRead: boolean;
-  createdAt: string;
-  groupId: string | null;
-}
-
-// ============================================
-// AUTH TYPES
-// ============================================
 export interface LoginRequest {
   email: string;
   password: string;
@@ -150,41 +71,342 @@ export interface RegisterRequest {
 }
 
 export interface AuthResponse {
-  token: string;
   user: User;
+  tokens: AuthTokens;
+}
+
+export interface UpdateProfileRequest {
+  username?: string;
+  bio?: string;
+  city?: string;
+  avatarUrl?: string;
+}
+
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
 }
 
 // ============================================
-// CATEGORY TYPES
+// ACTIVITY GROUP
 // ============================================
-export interface Category {
-  id: ActivityCategory;
-  name: string;
-  iconUrl: string;
-  icon: string; // Emoji or icon class
-  color: string;
-}
-
-// ============================================
-// UI TYPES
-// ============================================
-export interface Toast {
+export interface ActivityGroup {
   id: string;
-  message: string;
-  type: 'success' | 'error' | 'info' | 'warning';
-  duration?: number;
+  title: string;
+  description?: string;
+  imageUrl?: string;
+  category: Category;
+  location: string;
+  city: string;
+  date: string;
+  maxMembers: number;
+  currentMembers: number;
+  isPrivate?: boolean;
+  autoApprove?: boolean;
+  isActive?: boolean;
+  createdAt: string;
+  updatedAt?: string;
+  
+  // Relations
+  creator: GroupCreator;
+  participants?: Participant[];
+  messages?: Message[];
+  
+  // Computed for current user
+  isMember?: boolean;
+  isPending?: boolean;
+  isCreator?: boolean;
 }
 
-export interface ModalConfig {
+export interface GroupCreator {
+  id: string;
+  username: string;
+  avatarUrl?: string;
+}
+
+export interface CreateGroupRequest {
   title: string;
-  message: string;
-  confirmText?: string;
-  cancelText?: string;
-  type?: 'info' | 'warning' | 'danger';
+  description?: string;
+  imageUrl?: string;
+  category: Category;
+  location: string;
+  city: string;
+  date: string;
+  maxMembers: number;
+  isPrivate?: boolean;
+  autoApprove?: boolean;
+}
+
+export interface UpdateGroupRequest {
+  title?: string;
+  description?: string;
+  imageUrl?: string;
+  category?: Category;
+  location?: string;
+  city?: string;
+  date?: string;
+  maxMembers?: number;
+  isPrivate?: boolean;
+  autoApprove?: boolean;
+}
+
+export interface GroupsResponse {
+  groups: ActivityGroup[];
+  total: number;
+  hasMore: boolean;
+}
+
+export interface GroupFilters {
+  category?: Category;
+  city?: string;
+  search?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  hasSpace?: boolean;
+  limit?: number;
+  offset?: number;
+  sortBy?: 'date' | 'popularity' | 'newest';
+  sortOrder?: 'asc' | 'desc';
 }
 
 // ============================================
-// API RESPONSE TYPES
+// PARTICIPANT
+// ============================================
+export interface Participant {
+  id: string;
+  status: ParticipantStatus;
+  message?: string;
+  role: ParticipantRole;
+  joinedAt: string;
+  updatedAt?: string;
+  
+  // Relations
+  user: ParticipantUser;
+  groupId?: string;
+}
+
+export interface ParticipantUser {
+  id: string;
+  username: string;
+  avatarUrl?: string;
+}
+
+export interface JoinGroupRequest {
+  message?: string;
+}
+
+export interface ParticipantsResponse {
+  participants: Participant[];
+  isCreator: boolean;
+}
+
+export type ParticipantStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+export type ParticipantRole = 'MEMBER' | 'MODERATOR' | 'ADMIN';
+
+// ============================================
+// MESSAGE
+// ============================================
+export interface Message {
+  id: string;
+  content: string;
+  mediaUrl?: string;
+  mediaType?: MediaType;
+  isEdited?: boolean;
+  isDeleted?: boolean;
+  createdAt: string;
+  updatedAt?: string;
+  
+  // Relations
+  sender: MessageSender;
+  groupId: string;
+}
+
+export interface MessageSender {
+  id: string;
+  username: string;
+  avatarUrl?: string;
+}
+
+export interface SendMessageRequest {
+  content: string;
+  mediaUrl?: string;
+  mediaType?: MediaType;
+}
+
+export interface MessagesResponse {
+  messages: Message[];
+  total: number;
+  hasMore: boolean;
+}
+
+export type MediaType = 'IMAGE' | 'VIDEO' | 'AUDIO' | 'FILE';
+
+// ============================================
+// CHAT ROOM
+// ============================================
+export interface ChatRoom {
+  group: ChatRoomGroup;
+  lastMessage: Message | null;
+  unreadCount: number;
+}
+
+export interface ChatRoomGroup {
+  id: string;
+  title: string;
+  imageUrl?: string;
+  category: Category;
+  currentMembers: number;
+  creator: GroupCreator;
+}
+
+// ============================================
+// NOTIFICATION
+// ============================================
+export interface Notification {
+  id: string;
+  type: NotificationType;
+  title: string;
+  content: string;
+  isRead: boolean;
+  createdAt: string;
+  
+  // Relations
+  userId: string;
+  groupId?: string;
+  group?: NotificationGroup;
+}
+
+export interface NotificationGroup {
+  id: string;
+  title: string;
+  imageUrl?: string;
+  category: Category;
+}
+
+export interface NotificationsResponse {
+  notifications: Notification[];
+  total: number;
+  unreadCount: number;
+  hasMore: boolean;
+}
+
+export type NotificationType =
+  | 'JOIN_REQUEST'
+  | 'REQUEST_APPROVED'
+  | 'REQUEST_REJECTED'
+  | 'NEW_MESSAGE'
+  | 'GROUP_UPDATED'
+  | 'GROUP_DELETED'
+  | 'MEMBER_LEFT'
+  | 'REMINDER';
+
+// ============================================
+// CATEGORY
+// ============================================
+export type Category =
+  | 'SPORT'
+  | 'PARTY'
+  | 'KULTUR'
+  | 'NATUR'
+  | 'SOCIAL'
+  | 'FOOD'
+  | 'TRAVEL'
+  | 'GAMING'
+  | 'OTHER';
+
+export interface CategoryMeta {
+  name: string;
+  icon: string;
+  color: string;
+  description?: string;
+}
+
+export const CATEGORY_META: Record<Category, CategoryMeta> = {
+  SPORT: {
+    name: 'Sport',
+    icon: '⚽',
+    color: '#22c55e',
+    description: 'Fußball, Basketball, Laufen, Fitness...'
+  },
+  PARTY: {
+    name: 'Party',
+    icon: '🎉',
+    color: '#ec4899',
+    description: 'Clubs, Bars, Feiern, Festivals...'
+  },
+  KULTUR: {
+    name: 'Kultur',
+    icon: '🎭',
+    color: '#8b5cf6',
+    description: 'Museen, Theater, Konzerte, Kunst...'
+  },
+  NATUR: {
+    name: 'Natur',
+    icon: '🏔️',
+    color: '#10b981',
+    description: 'Wandern, Camping, Parks, Ausflüge...'
+  },
+  SOCIAL: {
+    name: 'Social',
+    icon: '👥',
+    color: '#3b82f6',
+    description: 'Networking, Meetups, Stammtisch...'
+  },
+  FOOD: {
+    name: 'Food',
+    icon: '🍕',
+    color: '#f59e0b',
+    description: 'Restaurants, Kochen, Food Tours...'
+  },
+  TRAVEL: {
+    name: 'Travel',
+    icon: '✈️',
+    color: '#06b6d4',
+    description: 'Roadtrips, Städtetrips, Reisen...'
+  },
+  GAMING: {
+    name: 'Gaming',
+    icon: '🎮',
+    color: '#6366f1',
+    description: 'Videospiele, Brettspiele, LAN-Partys...'
+  },
+  OTHER: {
+    name: 'Sonstiges',
+    icon: '✨',
+    color: '#ff7043',
+    description: 'Alles andere...'
+  }
+};
+
+export const CATEGORIES: Category[] = [
+  'SPORT',
+  'PARTY',
+  'KULTUR',
+  'NATUR',
+  'SOCIAL',
+  'FOOD',
+  'TRAVEL',
+  'GAMING',
+  'OTHER'
+];
+
+// ============================================
+// CITIES
+// ============================================
+export const AVAILABLE_CITIES = [
+  'Wien',
+  'Graz',
+  'Innsbruck',
+  'Hamburg',
+  'Berlin',
+  'München',
+  'Köln'
+] as const;
+
+export type AvailableCity = typeof AVAILABLE_CITIES[number];
+
+// ============================================
+// API RESPONSES
 // ============================================
 export interface ApiResponse<T> {
   data: T;
@@ -193,106 +415,151 @@ export interface ApiResponse<T> {
 
 export interface ApiError {
   error: string;
-  statusCode: number;
-  details?: Record<string, string[]>;
+  message?: string;
+  statusCode?: number;
+  details?: Record<string, string>;
 }
 
 export interface PaginatedResponse<T> {
-  data: T[];
+  items: T[];
   total: number;
   page: number;
   pageSize: number;
-  totalPages: number;
+  hasMore: boolean;
 }
 
 // ============================================
-// FILTER TYPES
+// SOCKET EVENTS
 // ============================================
-export interface GroupFilters {
-  category?: ActivityCategory;
-  city?: string;
-  search?: string;
-  dateFrom?: string;
-  dateTo?: string;
-  hasSpace?: boolean;
+export interface SocketEvents {
+  // Server -> Client
+  group_created: ActivityGroup;
+  group_updated: ActivityGroup;
+  group_deleted: { id: string };
+  join_request: { groupId: string; participant: Participant };
+  request_response: { groupId: string; status: ParticipantStatus; groupTitle: string };
+  member_joined: { groupId: string; member: ParticipantUser };
+  member_left: { userId: string; groupId: string };
+  new_message: Message;
+  message_deleted: { messageId: string; groupId: string };
+  notification: Notification;
+  user_online: { userId: string };
+  user_offline: { userId: string };
+  user_typing: { userId: string; groupId: string; isTyping: boolean };
+  error: { message: string };
+  
+  // Client -> Server
+  join_group: string;
+  leave_group: string;
+  send_message: { groupId: string; content: string };
+  typing_start: string;
+  typing_stop: string;
+  mark_read: string;
 }
 
 // ============================================
-// HELPER TYPES
+// UI TYPES
 // ============================================
-export interface UserSummary {
+export interface Tab {
   id: string;
-  username: string;
-  avatarUrl: string | null;
+  label: string;
+  icon?: string;
+  badge?: number;
 }
 
-// City options for the app
-export const CITIES = [
-  'Wien',
-  'Graz', 
-  'Innsbruck',
-  'Hamburg',
-  'Berlin',
-  'München',
-  'Köln'
-] as const;
+export interface MenuItem {
+  id: string;
+  label: string;
+  icon?: string;
+  route?: string;
+  action?: () => void;
+  disabled?: boolean;
+  divider?: boolean;
+  danger?: boolean;
+}
 
-export type City = typeof CITIES[number];
+export interface ModalConfig {
+  title: string;
+  message?: string;
+  confirmText?: string;
+  cancelText?: string;
+  type?: 'info' | 'warning' | 'danger' | 'success';
+}
 
-// Category metadata
-export const CATEGORY_META: Record<ActivityCategory, Omit<Category, 'id'>> = {
-  SPORT: {
-    name: 'Sport',
-    iconUrl: 'https://images.unsplash.com/photo-1517649763962-0c623066013b?w=200',
-    icon: '⚽',
-    color: '#10b981'
-  },
-  PARTY: {
-    name: 'Party',
-    iconUrl: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=200',
-    icon: '🎉',
-    color: '#f59e0b'
-  },
-  KULTUR: {
-    name: 'Kultur',
-    iconUrl: 'https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?w=200',
-    icon: '🎭',
-    color: '#8b5cf6'
-  },
-  NATUR: {
-    name: 'Natur',
-    iconUrl: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=200',
-    icon: '🌲',
-    color: '#22c55e'
-  },
-  SOCIAL: {
-    name: 'Social',
-    iconUrl: 'https://images.unsplash.com/photo-1543807535-eceef0bc6599?w=200',
-    icon: '☕',
-    color: '#ec4899'
-  },
-  FOOD: {
-    name: 'Food',
-    iconUrl: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=200',
-    icon: '🍕',
-    color: '#f97316'
-  },
-  TRAVEL: {
-    name: 'Travel',
-    iconUrl: 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=200',
-    icon: '✈️',
-    color: '#3b82f6'
-  },
-  GAMING: {
-    name: 'Gaming',
-    iconUrl: 'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=200',
-    icon: '🎮',
-    color: '#6366f1'
-  },
-  OTHER: {
-    name: 'Sonstiges',
-    iconUrl: 'https://images.unsplash.com/photo-1517457373958-b7bdd4587205?w=200',
-    icon: '✨',
-    color: '#64748b'
-  }
+export interface FilterOption<T = string> {
+  value: T;
+  label: string;
+  icon?: string;
+  count?: number;
+}
+
+export interface SortOption {
+  value: string;
+  label: string;
+  direction?: 'asc' | 'desc';
+}
+
+// ============================================
+// FORM TYPES
+// ============================================
+export interface FormField {
+  name: string;
+  label: string;
+  type: 'text' | 'email' | 'password' | 'textarea' | 'select' | 'date' | 'number' | 'checkbox';
+  placeholder?: string;
+  required?: boolean;
+  minLength?: number;
+  maxLength?: number;
+  min?: number;
+  max?: number;
+  options?: { value: string; label: string }[];
+  hint?: string;
+  errorMessages?: Record<string, string>;
+}
+
+export interface ValidationError {
+  field: string;
+  message: string;
+}
+
+// ============================================
+// DATE HELPERS
+// ============================================
+export interface DateRange {
+  from: Date | null;
+  to: Date | null;
+}
+
+export type QuickDateOption = 'today' | 'tomorrow' | 'weekend' | 'week' | 'month';
+
+// ============================================
+// UTILITY TYPES
+// ============================================
+export type LoadingState = 'idle' | 'loading' | 'success' | 'error';
+
+export interface AsyncState<T> {
+  data: T | null;
+  loading: boolean;
+  error: string | null;
+}
+
+export type DeepPartial<T> = {
+  [P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P];
 };
+
+export type RequireAtLeastOne<T, Keys extends keyof T = keyof T> =
+  Pick<T, Exclude<keyof T, Keys>> &
+  { [K in Keys]-?: Required<Pick<T, K>> & Partial<Pick<T, Exclude<Keys, K>>> }[Keys];
+
+// ============================================
+// CONSTANTS
+// ============================================
+export const DEFAULT_AVATAR_URL = 'https://api.dicebear.com/7.x/avataaars/svg?seed=default';
+export const DEFAULT_GROUP_IMAGE = 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=800';
+
+export const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+export const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+
+export const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+export const USERNAME_REGEX = /^[a-zA-Z0-9_]+$/;
+export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

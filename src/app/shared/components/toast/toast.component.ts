@@ -1,57 +1,77 @@
 // src/app/shared/components/toast/toast.component.ts
-// Jamie App - Toast Notification Container Component
-
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ToastService } from '../../../services/toast.service';
-import { Toast } from '../../../models/types';
+import { ToastService, Toast } from '../../../services/toast.service';
 
 @Component({
   selector: 'app-toast-container',
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div class="fixed top-4 right-4 left-4 sm:left-auto z-[100] flex flex-col gap-2 pointer-events-none">
+    <div class="fixed top-4 right-4 z-[100] space-y-2 max-w-sm w-full px-4 pt-safe-top pointer-events-none">
       @for (toast of toastService.toasts(); track toast.id) {
         <div 
-          class="pointer-events-auto w-full sm:min-w-[320px] sm:max-w-[400px] p-4 rounded-2xl shadow-2xl border backdrop-blur-md animate-slide-in flex items-start gap-3"
-          [class]="getToastClasses(toast)">
+          class="pointer-events-auto flex items-start gap-3 p-4 rounded-2xl shadow-2xl border backdrop-blur-lg"
+          [class]="getToastClasses(toast.type)"
+          [@slideIn]>
           
           <!-- Icon -->
-          <div class="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center"
-               [class]="getIconBgClass(toast)">
+          <div class="flex-shrink-0 mt-0.5">
             @switch (toast.type) {
               @case ('success') {
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                </svg>
+                <div class="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                  <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+                  </svg>
+                </div>
               }
               @case ('error') {
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                </svg>
+                <div class="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center">
+                  <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/>
+                  </svg>
+                </div>
               }
               @case ('warning') {
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                </svg>
+                <div class="w-6 h-6 bg-yellow-500 rounded-full flex items-center justify-center">
+                  <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01"/>
+                  </svg>
+                </div>
               }
-              @case ('info') {
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
+              @default {
+                <div class="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                  <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 16h-1v-4h-1m1-4h.01"/>
+                  </svg>
+                </div>
               }
             }
           </div>
 
-          <!-- Message -->
-          <span class="flex-1 text-sm font-medium text-white leading-snug">{{ toast.message }}</span>
+          <!-- Content -->
+          <div class="flex-1 min-w-0">
+            <p class="text-sm text-white font-medium">{{ toast.message }}</p>
+            
+            <!-- Progress bar -->
+            @if (toast.duration > 0) {
+              <div class="mt-2 h-0.5 bg-white/10 rounded-full overflow-hidden">
+                <div 
+                  class="h-full rounded-full transition-all ease-linear"
+                  [class.bg-green-400]="toast.type === 'success'"
+                  [class.bg-red-400]="toast.type === 'error'"
+                  [class.bg-yellow-400]="toast.type === 'warning'"
+                  [class.bg-blue-400]="toast.type === 'info'"
+                  [style.animation]="'shrink ' + toast.duration + 'ms linear forwards'">
+                </div>
+              </div>
+            }
+          </div>
 
-          <!-- Close Button -->
+          <!-- Close -->
           <button 
-            (click)="toastService.remove(toast.id)"
-            class="flex-shrink-0 text-white/50 hover:text-white transition-colors p-1 -m-1"
-            aria-label="Dismiss">
+            (click)="dismiss(toast.id)"
+            class="flex-shrink-0 p-1 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
             </svg>
@@ -61,67 +81,47 @@ import { Toast } from '../../../models/types';
     </div>
   `,
   styles: [`
-    @keyframes slideIn {
-      from { 
-        transform: translateX(100%); 
-        opacity: 0; 
-      }
-      to { 
-        transform: translateX(0); 
-        opacity: 1; 
-      }
-    }
-    
-    .animate-slide-in {
-      animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    @keyframes shrink {
+      from { width: 100%; }
+      to { width: 0%; }
     }
 
-    @media (max-width: 640px) {
-      @keyframes slideIn {
-        from { 
-          transform: translateY(-100%); 
-          opacity: 0; 
-        }
-        to { 
-          transform: translateY(0); 
-          opacity: 1; 
-        }
+    @keyframes slideIn {
+      from {
+        transform: translateX(100%) scale(0.9);
+        opacity: 0;
       }
+      to {
+        transform: translateX(0) scale(1);
+        opacity: 1;
+      }
+    }
+
+    :host {
+      display: contents;
     }
   `]
 })
-export class ToastComponent {
+export class ToastContainerComponent {
   readonly toastService = inject(ToastService);
 
-  getToastClasses(toast: Toast): string {
-    const baseClasses = 'bg-[#2e2e42]/95';
+  getToastClasses(type: string): string {
+    const base = 'animate-[slideIn_0.3s_ease-out]';
     
-    switch (toast.type) {
+    switch (type) {
       case 'success':
-        return `${baseClasses} border-green-500/30`;
+        return `${base} bg-[#1c1c2e]/95 border-green-500/30`;
       case 'error':
-        return `${baseClasses} border-red-500/30`;
+        return `${base} bg-[#1c1c2e]/95 border-red-500/30`;
       case 'warning':
-        return `${baseClasses} border-yellow-500/30`;
+        return `${base} bg-[#1c1c2e]/95 border-yellow-500/30`;
       case 'info':
-        return `${baseClasses} border-blue-500/30`;
       default:
-        return `${baseClasses} border-white/10`;
+        return `${base} bg-[#1c1c2e]/95 border-blue-500/30`;
     }
   }
 
-  getIconBgClass(toast: Toast): string {
-    switch (toast.type) {
-      case 'success':
-        return 'bg-green-500/20 text-green-400';
-      case 'error':
-        return 'bg-red-500/20 text-red-400';
-      case 'warning':
-        return 'bg-yellow-500/20 text-yellow-400';
-      case 'info':
-        return 'bg-blue-500/20 text-blue-400';
-      default:
-        return 'bg-white/10 text-gray-400';
-    }
+  dismiss(id: string): void {
+    this.toastService.dismiss(id);
   }
 }

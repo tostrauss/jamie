@@ -1,6 +1,6 @@
 // backend/src/routes/groups.routes.ts
 // Jamie App - Activity Groups API Routes
-import { getIO } from '@/socket';
+import { getIO } from '../socket';
 import { Router, Request, Response } from 'express';
 import { PrismaClient, ActivityCategory, ParticipantStatus } from '@prisma/client';
 import { z } from 'zod';

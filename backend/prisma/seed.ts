@@ -1,7 +1,5 @@
 // backend/prisma/seed.ts
-// Jamie App - Database Seed Script
-
-import { PrismaClient, ActivityCategory } from '@prisma/client';
+import { PrismaClient, Category, ParticipantStatus } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
@@ -9,234 +7,348 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('🌱 Seeding database...');
 
-  // Create demo users
-  const hashedPassword = await bcrypt.hash('demo123', 12);
+  // Clear existing data
+  await prisma.notification.deleteMany();
+  await prisma.message.deleteMany();
+  await prisma.participant.deleteMany();
+  await prisma.activityGroup.deleteMany();
+  await prisma.user.deleteMany();
+
+  // Create users
+  const passwordHash = await bcrypt.hash('Test1234', 12);
 
   const users = await Promise.all([
-    prisma.user.upsert({
-      where: { email: 'robert@jamie-app.com' },
-      update: {},
-      create: {
-        email: 'robert@jamie-app.com',
-        username: 'Robert',
-        password: hashedPassword,
-        avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Robert',
-        bio: 'Co-Founder von Jamie. Immer für Sport & Outdoor zu haben! 🏃‍♂️',
+    prisma.user.create({
+      data: {
+        email: 'max@example.com',
+        username: 'MaxMustermann',
+        passwordHash,
+        avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=max',
+        bio: 'Sportbegeistert und immer für Abenteuer bereit! 🏃‍♂️',
         city: 'Wien',
-        isVerified: true
+        emailVerified: true
       }
     }),
-    prisma.user.upsert({
-      where: { email: 'tina@jamie-app.com' },
-      update: {},
-      create: {
-        email: 'tina@jamie-app.com',
-        username: 'Tina',
-        password: hashedPassword,
-        avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Tina',
-        bio: 'Co-Founderin. Party-Organisatorin & Kultur-Liebhaberin 🎭',
-        city: 'Wien',
-        isVerified: true
+    prisma.user.create({
+      data: {
+        email: 'anna@example.com',
+        username: 'AnnaB',
+        passwordHash,
+        avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=anna',
+        bio: 'Kulturliebhaberin und Foodie 🎭🍕',
+        city: 'Graz',
+        emailVerified: true
       }
     }),
-    prisma.user.upsert({
-      where: { email: 'arno@jamie-app.com' },
-      update: {},
-      create: {
-        email: 'arno@jamie-app.com',
-        username: 'Arno',
-        password: hashedPassword,
-        avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Arno',
-        bio: 'Co-Founder. Food & Social Events sind mein Ding! 🍕',
-        city: 'Wien',
-        isVerified: true
+    prisma.user.create({
+      data: {
+        email: 'tom@example.com',
+        username: 'TomTraveler',
+        passwordHash,
+        avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=tom',
+        bio: 'Reisen ist meine Leidenschaft ✈️',
+        city: 'München',
+        emailVerified: true
       }
     }),
-    prisma.user.upsert({
-      where: { email: 'demo@jamie-app.com' },
-      update: {},
-      create: {
-        email: 'demo@jamie-app.com',
-        username: 'DemoUser',
-        password: hashedPassword,
-        avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=DemoUser',
-        bio: 'Demo Account zum Testen der App',
-        city: 'Wien'
+    prisma.user.create({
+      data: {
+        email: 'lisa@example.com',
+        username: 'LisaGamer',
+        passwordHash,
+        avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=lisa',
+        bio: 'Gaming & Technik 🎮',
+        city: 'Berlin',
+        emailVerified: true
+      }
+    }),
+    prisma.user.create({
+      data: {
+        email: 'david@example.com',
+        username: 'DavidNature',
+        passwordHash,
+        avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=david',
+        bio: 'Wandern, Klettern, Natur genießen 🏔️',
+        city: 'Innsbruck',
+        emailVerified: true
       }
     })
   ]);
 
   console.log(`✅ Created ${users.length} users`);
 
-  // Create sample activity groups
+  // Create groups
   const now = new Date();
   const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
   const nextWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
   const groups = await Promise.all([
-    // Sport
     prisma.activityGroup.create({
       data: {
-        title: 'Beachvolleyball am Donaukanal',
-        description: 'Spontanes Beachvolleyball! Alle Levels willkommen. Wir bringen Bälle mit, einfach vorbeikommen und mitspielen! Nach dem Spiel gibt\'s ein Getränk zusammen.',
-        category: 'SPORT',
-        location: 'Donaukanal, Höhe Flex',
+        title: 'Fußball im Prater',
+        description: 'Lockeres Kicken am Wochenende. Alle Levels willkommen! Bringt Wasser mit. 🥅⚽',
+        imageUrl: 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=800',
+        category: Category.SPORT,
+        location: 'Prater Hauptallee',
         city: 'Wien',
         date: tomorrow,
-        maxMembers: 12,
-        imageUrl: 'https://images.unsplash.com/photo-1612872087720-bb876e2e67d1?w=600',
-        avatarSeeds: [1234, 5678, 9012],
+        maxMembers: 14,
         creatorId: users[0].id
       }
     }),
     prisma.activityGroup.create({
       data: {
-        title: 'Laufrunde im Prater',
-        description: 'Gemütliche 5-7km Runde durch den Prater. Tempo wird an die Gruppe angepasst. Danach Kaffee bei der Krieau?',
-        category: 'SPORT',
-        location: 'Praterstern, beim Riesenrad',
-        city: 'Wien',
-        date: new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000),
-        maxMembers: 8,
-        imageUrl: 'https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?w=600',
-        avatarSeeds: [3456, 7890],
-        creatorId: users[0].id
-      }
-    }),
-
-    // Party
-    prisma.activityGroup.create({
-      data: {
-        title: 'Techno Night @ Grelle Forelle',
-        description: 'Wer hat Lust auf tanzen? Line-up schaut gut aus. Vorglühen ab 22h im Wirr, dann rüber zur Grelle!',
-        category: 'PARTY',
-        location: 'Grelle Forelle',
-        city: 'Wien',
-        date: new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000),
-        maxMembers: 10,
-        imageUrl: 'https://images.unsplash.com/photo-1571266028243-e4733b0f0bb0?w=600',
-        avatarSeeds: [2345, 6789, 1357],
-        creatorId: users[1].id
-      }
-    }),
-
-    // Kultur
-    prisma.activityGroup.create({
-      data: {
-        title: 'Museumsbesuch: Albertina Modern',
-        description: 'Aktuelle Ausstellung anschauen und danach bei einem Kaffee darüber plaudern. Kunst muss man nicht verstehen, um sie zu genießen!',
-        category: 'KULTUR',
-        location: 'Albertina Modern, Karlsplatz',
+        title: 'Techno Night @ Flex',
+        description: 'Wir feiern bis zum Morgengrauen! Lineup: Ben Klock, Amelie Lens 🎵',
+        imageUrl: 'https://images.unsplash.com/photo-1571266028243-e4733b0f0bb0?w=800',
+        category: Category.PARTY,
+        location: 'Flex Club',
         city: 'Wien',
         date: nextWeek,
-        maxMembers: 6,
-        imageUrl: 'https://images.unsplash.com/photo-1554907984-15263bfd63bd?w=600',
-        avatarSeeds: [4567, 8901],
-        creatorId: users[1].id
-      }
-    }),
-
-    // Social
-    prisma.activityGroup.create({
-      data: {
-        title: 'Feierabendbier am Donaukanal',
-        description: 'Nach der Arbeit zusammen was trinken und quatschen. Ich bring Snacks mit! Einfach vorbeikommen, wir sitzen bei den Bänken.',
-        category: 'SOCIAL',
-        location: 'Donaukanal, Tel Aviv Beach',
-        city: 'Wien',
-        date: tomorrow,
-        maxMembers: 15,
-        imageUrl: 'https://images.unsplash.com/photo-1575037614876-c38a4f44f5b8?w=600',
-        avatarSeeds: [5678, 9012, 3456, 7890],
-        creatorId: users[2].id
-      }
-    }),
-
-    // Food
-    prisma.activityGroup.create({
-      data: {
-        title: 'Naschmarkt Food Tour',
-        description: 'Wir probieren uns gemeinsam durch den Naschmarkt! Von Falafel bis Käse, von Oliven bis Baklava. Komm hungrig!',
-        category: 'FOOD',
-        location: 'Naschmarkt, Haupteingang',
-        city: 'Wien',
-        date: new Date(now.getTime() + 4 * 24 * 60 * 60 * 1000),
         maxMembers: 8,
-        imageUrl: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600',
-        avatarSeeds: [6789, 1234],
-        creatorId: users[2].id
-      }
-    }),
-
-    // Natur
-    prisma.activityGroup.create({
-      data: {
-        title: 'Wanderung am Kahlenberg',
-        description: 'Gemütliche Wanderung mit schönem Ausblick über Wien. Ca. 3h, mittlere Schwierigkeit. Wir kehren danach beim Heurigen ein!',
-        category: 'NATUR',
-        location: 'Endstation 38A Kahlenberg',
-        city: 'Wien',
-        date: new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000),
-        maxMembers: 10,
-        imageUrl: 'https://images.unsplash.com/photo-1551632811-561732d1e306?w=600',
-        avatarSeeds: [7890, 1234, 5678],
         creatorId: users[0].id
       }
     }),
-
-    // Berlin groups
     prisma.activityGroup.create({
       data: {
-        title: 'Spree-Spaziergang & Drinks',
-        description: 'Entspannter Spaziergang entlang der Spree mit anschließendem Sundowner in einer Bar. Neue Leute kennenlernen in entspannter Atmosphäre!',
-        category: 'SOCIAL',
-        location: 'Oberbaumbrücke',
+        title: 'Museum & Kaffee',
+        description: 'Kunsthistorisches Museum besuchen und danach gemütlich Kaffee trinken ☕🎨',
+        imageUrl: 'https://images.unsplash.com/photo-1554907984-15263bfd63bd?w=800',
+        category: Category.KULTUR,
+        location: 'Kunsthistorisches Museum',
+        city: 'Wien',
+        date: tomorrow,
+        maxMembers: 6,
+        creatorId: users[1].id
+      }
+    }),
+    prisma.activityGroup.create({
+      data: {
+        title: 'Wanderung am Schöckl',
+        description: 'Gemütliche Wanderung mit Einkehr. Ca. 3h, mittlere Kondition. 🥾',
+        imageUrl: 'https://images.unsplash.com/photo-1551632811-561732d1e306?w=800',
+        category: Category.NATUR,
+        location: 'Schöckl Bergstation',
+        city: 'Graz',
+        date: nextWeek,
+        maxMembers: 10,
+        creatorId: users[4].id
+      }
+    }),
+    prisma.activityGroup.create({
+      data: {
+        title: 'Gaming Abend - Mario Kart',
+        description: 'Nintendo Switch Turnier! Snacks sind vorhanden 🎮🍕',
+        imageUrl: 'https://images.unsplash.com/photo-1493711662062-fa541f7f3d24?w=800',
+        category: Category.GAMING,
+        location: 'Meine Wohnung (Adresse per DM)',
         city: 'Berlin',
         date: tomorrow,
+        maxMembers: 8,
+        creatorId: users[3].id
+      }
+    }),
+    prisma.activityGroup.create({
+      data: {
+        title: 'Ramen Workshop',
+        description: 'Wir kochen authentische japanische Ramen! Alle Zutaten inklusive. 🍜',
+        imageUrl: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=800',
+        category: Category.FOOD,
+        location: 'Kochstudio Zentral',
+        city: 'München',
+        date: nextWeek,
         maxMembers: 12,
-        imageUrl: 'https://images.unsplash.com/photo-1560969184-10fe8719e047?w=600',
-        avatarSeeds: [8901, 2345],
+        creatorId: users[2].id
+      }
+    }),
+    prisma.activityGroup.create({
+      data: {
+        title: 'Afterwork Drinks',
+        description: 'Entspanntes Netzwerken bei Drinks. Alle Branchen willkommen! 🍻',
+        imageUrl: 'https://images.unsplash.com/photo-1575037614876-c38a4c44f5bd?w=800',
+        category: Category.SOCIAL,
+        location: 'Sky Bar',
+        city: 'Wien',
+        date: tomorrow,
+        maxMembers: 20,
         creatorId: users[1].id
       }
     }),
-
-    // München groups
     prisma.activityGroup.create({
       data: {
-        title: 'Biergarten Treffen',
-        description: 'Klassischer Biergarten Abend im Englischen Garten! Brotzeit & Bier in geselliger Runde. Alle sind willkommen!',
-        category: 'SOCIAL',
-        location: 'Chinesischer Turm',
-        city: 'München',
+        title: 'Wochenendtrip nach Prag',
+        description: 'Spontaner Roadtrip! Abfahrt Freitag Abend, zurück Sonntag. 🚗✨',
+        imageUrl: 'https://images.unsplash.com/photo-1541849546-216549ae216d?w=800',
+        category: Category.TRAVEL,
+        location: 'Treffpunkt: Westbahnhof',
+        city: 'Wien',
         date: nextWeek,
-        maxMembers: 20,
-        imageUrl: 'https://images.unsplash.com/photo-1558642452-9d2a7deb7f62?w=600',
-        avatarSeeds: [9012, 3456, 7890],
+        maxMembers: 4,
         creatorId: users[2].id
       }
     })
   ]);
 
-  console.log(`✅ Created ${groups.length} activity groups`);
+  console.log(`✅ Created ${groups.length} groups`);
 
-  // Add some participants
-  await prisma.participant.createMany({
-    data: [
-      { userId: users[1].id, groupId: groups[0].id, status: 'APPROVED' },
-      { userId: users[2].id, groupId: groups[0].id, status: 'APPROVED' },
-      { userId: users[3].id, groupId: groups[0].id, status: 'PENDING', message: 'Hey, kann ich mitmachen?' },
-      { userId: users[0].id, groupId: groups[4].id, status: 'APPROVED' },
-      { userId: users[1].id, groupId: groups[4].id, status: 'APPROVED' },
-    ],
-    skipDuplicates: true
-  });
+  // Create participants
+  const participants = await Promise.all([
+    // Fußball
+    prisma.participant.create({
+      data: {
+        userId: users[1].id,
+        groupId: groups[0].id,
+        status: ParticipantStatus.APPROVED
+      }
+    }),
+    prisma.participant.create({
+      data: {
+        userId: users[2].id,
+        groupId: groups[0].id,
+        status: ParticipantStatus.APPROVED
+      }
+    }),
+    prisma.participant.create({
+      data: {
+        userId: users[3].id,
+        groupId: groups[0].id,
+        status: ParticipantStatus.PENDING,
+        message: 'Hey, kann ich mitmachen? Spiele seit 5 Jahren!'
+      }
+    }),
+    // Techno Night
+    prisma.participant.create({
+      data: {
+        userId: users[1].id,
+        groupId: groups[1].id,
+        status: ParticipantStatus.APPROVED
+      }
+    }),
+    // Museum
+    prisma.participant.create({
+      data: {
+        userId: users[0].id,
+        groupId: groups[2].id,
+        status: ParticipantStatus.APPROVED
+      }
+    }),
+    // Gaming
+    prisma.participant.create({
+      data: {
+        userId: users[0].id,
+        groupId: groups[4].id,
+        status: ParticipantStatus.APPROVED
+      }
+    }),
+    prisma.participant.create({
+      data: {
+        userId: users[2].id,
+        groupId: groups[4].id,
+        status: ParticipantStatus.PENDING,
+        message: 'Bin dabei! Bin der beste Mario Kart Spieler 😎'
+      }
+    }),
+    // Ramen
+    prisma.participant.create({
+      data: {
+        userId: users[1].id,
+        groupId: groups[5].id,
+        status: ParticipantStatus.APPROVED
+      }
+    }),
+    prisma.participant.create({
+      data: {
+        userId: users[4].id,
+        groupId: groups[5].id,
+        status: ParticipantStatus.APPROVED
+      }
+    })
+  ]);
 
-  console.log('✅ Added participants');
+  console.log(`✅ Created ${participants.length} participants`);
 
+  // Create messages
+  const messages = await Promise.all([
+    prisma.message.create({
+      data: {
+        content: 'Freue mich schon auf morgen! 🎉',
+        senderId: users[0].id,
+        groupId: groups[0].id
+      }
+    }),
+    prisma.message.create({
+      data: {
+        content: 'Ich bringe einen Ball mit!',
+        senderId: users[1].id,
+        groupId: groups[0].id
+      }
+    }),
+    prisma.message.create({
+      data: {
+        content: 'Top, bis dann! ⚽',
+        senderId: users[2].id,
+        groupId: groups[0].id
+      }
+    }),
+    prisma.message.create({
+      data: {
+        content: 'Wer ist noch dabei?',
+        senderId: users[3].id,
+        groupId: groups[4].id
+      }
+    }),
+    prisma.message.create({
+      data: {
+        content: 'Ich! 🙋‍♂️',
+        senderId: users[0].id,
+        groupId: groups[4].id
+      }
+    })
+  ]);
+
+  console.log(`✅ Created ${messages.length} messages`);
+
+  // Create notifications
+  const notifications = await Promise.all([
+    prisma.notification.create({
+      data: {
+        type: 'JOIN_REQUEST',
+        title: 'Neue Beitrittsanfrage',
+        content: 'LisaGamer möchte "Fußball im Prater" beitreten',
+        userId: users[0].id,
+        groupId: groups[0].id
+      }
+    }),
+    prisma.notification.create({
+      data: {
+        type: 'REQUEST_APPROVED',
+        title: 'Anfrage angenommen!',
+        content: 'Du wurdest zu "Gaming Abend - Mario Kart" hinzugefügt',
+        userId: users[0].id,
+        groupId: groups[4].id,
+        isRead: true
+      }
+    }),
+    prisma.notification.create({
+      data: {
+        type: 'NEW_MESSAGE',
+        title: 'Neue Nachricht',
+        content: 'AnnaB in "Fußball im Prater": Ich bringe einen Ball mit!',
+        userId: users[0].id,
+        groupId: groups[0].id
+      }
+    })
+  ]);
+
+  console.log(`✅ Created ${notifications.length} notifications`);
+
+  console.log('');
   console.log('🎉 Seeding complete!');
-  console.log('\n📧 Demo Login:');
-  console.log('   Email: demo@jamie-app.com');
-  console.log('   Password: demo123\n');
+  console.log('');
+  console.log('📧 Test accounts (Password: Test1234):');
+  users.forEach(u => {
+    console.log(`   - ${u.email} (${u.username})`);
+  });
 }
 
 main()

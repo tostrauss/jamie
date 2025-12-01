@@ -15,13 +15,12 @@ export const authGuard = () => {
     return true;
   }
 
-  // Store attempted URL for redirect after login
   const currentUrl = router.routerState.snapshot.url;
   if (currentUrl && currentUrl !== '/login' && currentUrl !== '/') {
     sessionStorage.setItem('redirectUrl', currentUrl);
   }
 
-  router.navigate(['/login']);
+  router.navigate(['/']);
   return false;
 };
 
@@ -41,16 +40,39 @@ export const guestGuard = () => {
 };
 
 // ============================================
+// ONBOARDING GUARD (check if profile complete)
+// ============================================
+export const onboardingGuard = () => {
+  const auth = inject(AuthService);
+  const router = inject(Router);
+
+  if (auth.isAuthenticated()) {
+    const user = auth.currentUser();
+    // Check if onboarding is complete (has required fields)
+    if (!user?.city || !user?.bio) {
+      router.navigate(['/onboarding']);
+      return false;
+    }
+    return true;
+  }
+
+  router.navigate(['/']);
+  return false;
+};
+
+// ============================================
 // ROUTES
 // ============================================
 export const routes: Routes = [
   // ----------------------------------------
-  // Public Routes
+  // Public Routes (Guest Only)
   // ----------------------------------------
   {
     path: '',
-    pathMatch: 'full',
-    redirectTo: 'home'
+    loadComponent: () => import('./pages/auth/landing/landing.component')
+      .then(m => m.LandingComponent),
+    canActivate: [guestGuard],
+    title: 'Jamie - Willkommen'
   },
   {
     path: 'login',
@@ -75,7 +97,18 @@ export const routes: Routes = [
   },
 
   // ----------------------------------------
-  // Protected Routes
+  // Onboarding (Auth but not complete)
+  // ----------------------------------------
+  {
+    path: 'onboarding',
+    loadComponent: () => import('./pages/onboarding/onboarding.component')
+      .then(m => m.OnboardingComponent),
+    canActivate: [authGuard],
+    title: 'Jamie - Profil einrichten'
+  },
+
+  // ----------------------------------------
+  // Protected Routes (Main App)
   // ----------------------------------------
   {
     path: 'home',
@@ -83,6 +116,13 @@ export const routes: Routes = [
       .then(m => m.HomeComponent),
     canActivate: [authGuard],
     title: 'Jamie - Home'
+  },
+  {
+    path: 'favorites',
+    loadComponent: () => import('./pages/favorites/favorites.component')
+      .then(m => m.FavoritesComponent),
+    canActivate: [authGuard],
+    title: 'Jamie - Favoriten'
   },
   {
     path: 'explore',
@@ -97,6 +137,13 @@ export const routes: Routes = [
       .then(m => m.ChatComponent),
     canActivate: [authGuard],
     title: 'Jamie - Nachrichten'
+  },
+  {
+    path: 'chat/:groupId',
+    loadComponent: () => import('./pages/chat/chat-room/chat-room.component')
+      .then(m => m.ChatRoomComponent),
+    canActivate: [authGuard],
+    title: 'Jamie - Chat'
   },
   {
     path: 'notifications',
@@ -144,64 +191,34 @@ export const routes: Routes = [
     canActivate: [authGuard],
     title: 'Jamie - Gruppe bearbeiten'
   },
+
+  // ----------------------------------------
+  // Club Routes
+  // ----------------------------------------
   {
-    path: 'group/:id/members',
-    loadComponent: () => import('./pages/group-detail/group-members/group-members.component')
-      .then(m => m.GroupMembersComponent),
+    path: 'club/:id',
+    loadComponent: () => import('./pages/club-detail/club-detail.component')
+      .then(m => m.ClubDetailComponent),
     canActivate: [authGuard],
-    title: 'Jamie - Mitglieder'
+    title: 'Jamie - Club'
   },
 
   // ----------------------------------------
-  // User Routes
+  // User Profile (public view)
   // ----------------------------------------
   {
     path: 'user/:id',
     loadComponent: () => import('./pages/user-profile/user-profile.component')
       .then(m => m.UserProfileComponent),
     canActivate: [authGuard],
-    title: 'Jamie - Benutzer'
+    title: 'Jamie - Profil'
   },
 
   // ----------------------------------------
-  // Static Pages
+  // Fallback
   // ----------------------------------------
-  {
-    path: 'about',
-    loadComponent: () => import('./pages/static/about/about.component')
-      .then(m => m.AboutComponent),
-    title: 'Jamie - Über uns'
-  },
-  {
-    path: 'privacy',
-    loadComponent: () => import('./pages/static/privacy/privacy.component')
-      .then(m => m.PrivacyComponent),
-    title: 'Jamie - Datenschutz'
-  },
-  {
-    path: 'terms',
-    loadComponent: () => import('./pages/static/terms/terms.component')
-      .then(m => m.TermsComponent),
-    title: 'Jamie - AGB'
-  },
-  {
-    path: 'imprint',
-    loadComponent: () => import('./pages/static/imprint/imprint.component')
-      .then(m => m.ImprintComponent),
-    title: 'Jamie - Impressum'
-  },
-
-  // ----------------------------------------
-  // Error Routes
-  // ----------------------------------------
-  {
-    path: 'not-found',
-    loadComponent: () => import('./pages/errors/not-found/not-found.component')
-      .then(m => m.NotFoundComponent),
-    title: 'Jamie - Nicht gefunden'
-  },
   {
     path: '**',
-    redirectTo: 'not-found'
+    redirectTo: 'home'
   }
 ];

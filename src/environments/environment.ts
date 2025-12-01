@@ -54,7 +54,8 @@ export const environment = {
   upload: {
     maxFileSize: 5 * 1024 * 1024, // 5MB
     allowedImageTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
-    maxImageDimension: 2048
+    maxImageDimension: 2048,
+    maxPhotos: 6
   },
   
   // Validation

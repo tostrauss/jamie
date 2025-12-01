@@ -38,6 +38,8 @@ export class HomeComponent implements OnInit {
   readonly groups = this.backend.filteredGroups;
   readonly isLoading = this.backend.isLoadingGroups;
   readonly selectedCity = this.backend.selectedCity;
+  // NEU: Active filters direkt exponerien
+  readonly activeFilters = this.backend.activeFilters;
   readonly cities = CITIES;
 
   // Computed
@@ -50,7 +52,8 @@ export class HomeComponent implements OnInit {
   });
 
   ngOnInit(): void {
-    this.backend.loadGroups();
+    // Initial load passiert schon im Service Constructor, 
+    // aber refresh() ruft es explizit auf.
   }
 
   // Search handling with debounce
@@ -65,7 +68,7 @@ export class HomeComponent implements OnInit {
     }
     
     this.searchTimeout = setTimeout(() => {
-      this.backend.setFilters({ search: value || undefined });
+      this.backend.setFilters({ ...this.backend.activeFilters(), search: value || undefined });
     }, 300);
   }
 
@@ -77,7 +80,7 @@ export class HomeComponent implements OnInit {
 
   // Category filter
   filterByCategory(category: Category): void {
-    const currentFilters = this.backend['_activeFilters']();
+    const currentFilters = this.backend.activeFilters(); // Nutze die public Methode
     if (currentFilters.category === category.id) {
       this.backend.setFilters({ ...currentFilters, category: undefined });
     } else {

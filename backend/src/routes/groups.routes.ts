@@ -1,6 +1,6 @@
 // backend/src/routes/groups.routes.ts
 // Jamie App - Activity Groups API Routes
-
+import { getIO } from '@/socket';
 import { Router, Request, Response } from 'express';
 import { PrismaClient, ActivityCategory, ParticipantStatus } from '@prisma/client';
 import { z } from 'zod';
@@ -168,11 +168,16 @@ router.post('/', authenticateToken, async (req: AuthRequest, res: Response) => {
         }
       }
     });
+    const groupResponse = { ...newGroup, currentMembers: 1 };
 
-    res.status(201).json({
-      ...newGroup,
-      currentMembers: 1
-    });
+    // 🔥 REAL-TIME UPDATE: Allen Clients Bescheid geben!
+    try {
+      getIO().emit('group_created', groupResponse);
+    } catch (e) {
+      console.error('Socket emit failed:', e);
+    }
+
+    res.status(201).json(groupResponse);
   } catch (error) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: 'Ungültige Daten', details: error.errors });

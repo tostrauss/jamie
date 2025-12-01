@@ -6,6 +6,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { tap, map, catchError, finalize } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
+import { SocketService } from './socket.service'; // Dein neuer Socket Service
 import {
   ActivityGroup,
   CreateGroupRequest,
@@ -26,6 +27,7 @@ import {
 })
 export class BackendService {
   private readonly http = inject(HttpClient);
+  private readonly socket = inject(SocketService);
   private readonly apiUrl = environment.apiUrl;
 
   // ============================================
@@ -42,6 +44,9 @@ export class BackendService {
   readonly isLoadingGroups = this._isLoadingGroups.asReadonly();
   readonly selectedCity = this._selectedCity.asReadonly();
   readonly notifications = this._notifications.asReadonly();
+  
+  // NEU: Wir machen die Filter öffentlich lesbar für die Komponenten!
+  readonly activeFilters = this._activeFilters.asReadonly();
 
   // Categories
   readonly categories = signal<Category[]>(
@@ -79,6 +84,21 @@ export class BackendService {
 
   constructor() {
     this.loadGroups();
+    this.setupRealtimeUpdates();
+  }
+
+  // ============================================
+  // REALTIME
+  // ============================================
+  private setupRealtimeUpdates(): void {
+    // Verbindung aufbauen
+    this.socket.connect();
+
+    // Hören auf neue Gruppen
+    this.socket.on<ActivityGroup>('group_created').subscribe(newGroup => {
+      console.log('⚡ Realtime: New Group received', newGroup);
+      this._groups.update(current => [newGroup, ...current]);
+    });
   }
 
   // ============================================
@@ -125,7 +145,8 @@ export class BackendService {
     return this.http.post<ActivityGroup>(`${this.apiUrl}/groups`, groupData).pipe(
       map(group => this.transformGroup(group)),
       tap(newGroup => {
-        this._groups.update(groups => [newGroup, ...groups]);
+        // Optimistic update nicht zwingend nötig wegen Socket, aber sicherer
+        // this._groups.update(groups => [newGroup, ...groups]); 
       })
     );
   }

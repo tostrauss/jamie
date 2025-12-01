@@ -310,8 +310,6 @@ export type Category =
   | 'NATUR'
   | 'SOCIAL'
   | 'FOOD'
-  | 'TRAVEL'
-  | 'GAMING'
   | 'OTHER';
 
 export interface CategoryMeta {
@@ -358,18 +356,6 @@ export const CATEGORY_META: Record<Category, CategoryMeta> = {
     color: '#f59e0b',
     description: 'Restaurants, Kochen, Food Tours...'
   },
-  TRAVEL: {
-    name: 'Travel',
-    icon: '✈️',
-    color: '#06b6d4',
-    description: 'Roadtrips, Städtetrips, Reisen...'
-  },
-  GAMING: {
-    name: 'Gaming',
-    icon: '🎮',
-    color: '#6366f1',
-    description: 'Videospiele, Brettspiele, LAN-Partys...'
-  },
   OTHER: {
     name: 'Sonstiges',
     icon: '✨',
@@ -385,8 +371,6 @@ export const CATEGORIES: Category[] = [
   'NATUR',
   'SOCIAL',
   'FOOD',
-  'TRAVEL',
-  'GAMING',
   'OTHER'
 ];
 
